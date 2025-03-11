@@ -33,6 +33,18 @@ func TestIsPrime(t *testing.T) {
 			exp: true,
 		},
 		{
+			in:  4,
+			exp: false,
+		},
+		{
+			in:  7,
+			exp: true,
+		},
+		{
+			in:  25,
+			exp: false,
+		},
+		{
 			in:  100,
 			exp: false,
 		},

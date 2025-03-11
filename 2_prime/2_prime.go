@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net"
 )
 
@@ -54,6 +55,7 @@ func prime(c net.Conn) {
 			d.Encode(resp) // a response struct with zero values is considered malformed
 			break
 		}
+		fmt.Println("got", pr.Number)
 
 		resp.Method = "isPrime"
 		resp.Prime = isPrime(pr.Number)
@@ -66,7 +68,9 @@ func isPrime(number int) bool {
 	if number <= 1 {
 		return false
 	}
-	for i := 2; i < number; i++ { // should use sqrt but whatever
+
+	sq := int(math.Sqrt(float64(number)))
+	for i := 2; i < sq+1; i++ {
 		if (number % i) == 0 {
 			return false
 		}
