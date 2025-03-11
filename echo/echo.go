@@ -8,6 +8,7 @@ import (
 
 // naive implementation with for loops
 func Echo1(c net.Conn) {
+	defer c.Close()
 	for {
 		sl := make([]byte, 64)
 		n, err := c.Read(sl)
@@ -28,6 +29,7 @@ func Echo1(c net.Conn) {
 // chans
 func Echo2(c net.Conn) {
 	cha := make(chan []byte)
+	defer c.Close()
 
 	go func() {
 		for {
@@ -53,4 +55,5 @@ func Echo2(c net.Conn) {
 // lol
 func Echo3(c net.Conn) {
 	io.Copy(c, c)
+	defer c.Close()
 }

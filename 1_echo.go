@@ -22,6 +22,6 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		echo.Echo3(c)
+		go echo.Echo3(c)
 	}
 }
