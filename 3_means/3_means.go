@@ -39,11 +39,13 @@ type Query struct {
 func parsePacket(b []byte) (*Insert, *Query) {
 	t := b[0]
 
+	// uint32 -> int32 -> int
+	// casting directly to int will break negative numbers on 64 bit systems
 	firstint := b[1:5]
-	firstnum := int(binary.BigEndian.Uint32(firstint))
+	firstnum := int(int32(binary.BigEndian.Uint32(firstint)))
 
 	secint := b[5:9]
-	secnum := int(binary.BigEndian.Uint32(secint))
+	secnum := int(int32(binary.BigEndian.Uint32(secint)))
 
 	if t == 'Q' {
 		return nil, &Query{
