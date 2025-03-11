@@ -18,7 +18,7 @@ func TestIsPrime(t *testing.T) {
 		},
 		{
 			in:  -2,
-			exp: true,
+			exp: false,
 		},
 		{
 			in:  1,

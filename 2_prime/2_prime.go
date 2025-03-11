@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"math"
 	"net"
 )
 
@@ -64,8 +63,6 @@ func prime(c net.Conn) {
 }
 
 func isPrime(number int) bool {
-	number = int(math.Abs(float64(number)))
-
 	if number <= 1 {
 		return false
 	}
