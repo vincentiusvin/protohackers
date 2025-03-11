@@ -1,26 +1,10 @@
-package main
+package echo
 
 import (
 	"fmt"
 	"io"
 	"net"
 )
-
-func main() {
-	ln, err := net.Listen("tcp", ":8000")
-	if err != nil {
-		panic(err)
-	}
-	defer ln.Close()
-
-	for {
-		c, err := ln.Accept()
-		if err != nil {
-			panic(err)
-		}
-		Echo3(c)
-	}
-}
 
 // naive implementation with for loops
 func Echo1(c net.Conn) {
@@ -51,6 +35,7 @@ func Echo2(c net.Conn) {
 			_, err := c.Read(b)
 			if err != nil {
 				close(cha)
+				break
 			}
 			cha <- b
 		}
@@ -65,6 +50,7 @@ func Echo2(c net.Conn) {
 	}
 }
 
+// lol
 func Echo3(c net.Conn) {
 	io.Copy(c, c)
 }
