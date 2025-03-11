@@ -69,7 +69,7 @@ func isPrime(number int) bool {
 	if number <= 1 {
 		return false
 	}
-	for i := 2; i < number; i++ {
+	for i := 2; i < number; i++ { // should use sqrt but whatever
 		if (number % i) == 0 {
 			return false
 		}
