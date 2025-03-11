@@ -69,6 +69,11 @@ func isPrime(number float64) bool {
 		return false
 	}
 
+	isComma := math.Mod(number, 1)
+	if isComma != 0 {
+		return false
+	}
+
 	sq := math.Floor(math.Sqrt(number))
 	var i float64
 	for i = 2; i <= sq; i++ {

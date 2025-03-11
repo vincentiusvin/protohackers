@@ -56,6 +56,10 @@ func TestIsPrime(t *testing.T) {
 			in:  91028332887393654427978476145102147254121969766630449978,
 			exp: false,
 		},
+		{
+			in:  7937618.1234,
+			exp: false,
+		},
 	}
 
 	for _, c := range cases {
