@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net"
-	"protohackers/echo"
 )
 
 func main() {
@@ -18,10 +17,9 @@ func main() {
 	defer ln.Close()
 
 	for {
-		c, err := ln.Accept()
+		_, err := ln.Accept()
 		if err != nil {
 			panic(err)
 		}
-		go echo.Echo3(c)
 	}
 }

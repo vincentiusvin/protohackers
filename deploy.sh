@@ -1,6 +1,6 @@
 OUT="./build/$(basename $1 .go)"
 
-echo Building...
+echo Building $1 at $OUT
 go build -o "$OUT" $1
 echo Built!
 echo Copying...
