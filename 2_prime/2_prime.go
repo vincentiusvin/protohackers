@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net"
 )
@@ -26,10 +28,34 @@ func main() {
 	}
 }
 
+type PrimeRequest struct {
+	Method string `json:"method"`
+	Number int    `json:"number"`
+}
+
 func prime(c net.Conn) {
 	defer c.Close()
+
 	sc := bufio.NewScanner(c)
 	for sc.Scan() {
-		fmt.Println(sc.Text())
+		s := sc.Text()
+		handleRequest(s)
 	}
+	fmt.Println("EOF")
+}
+
+func handleRequest(s string) {
+	b := new(bytes.Buffer)
+	b.WriteString(s)
+
+	d := json.NewDecoder(b)
+
+	var pr PrimeRequest
+	err := d.Decode(&pr)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(pr)
 }
