@@ -2,7 +2,8 @@ package main
 
 import (
 	"encoding/binary"
-	"fmt"
+	"io"
+	"log"
 	"net"
 )
 
@@ -13,7 +14,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Server listening at " + addr)
+	log.Println("Server listening at " + addr)
 
 	defer ln.Close()
 
@@ -34,6 +35,54 @@ type Insert struct {
 type Query struct {
 	Mintime int
 	Maxtime int
+}
+
+func means(c net.Conn) {
+	defer c.Close()
+
+	sess := make([]*Insert, 0)
+	for {
+		b := make([]byte, 9)
+		_, err := io.ReadFull(c, b)
+		if err != nil {
+			log.Println(err)
+			break
+		}
+
+		i, q := parsePacket(b)
+
+		if i == nil && q == nil {
+			log.Println("unable to parse", b)
+		}
+
+		if i != nil {
+			sess = append(sess, i)
+			log.Println("insert", i)
+		}
+
+		if q != nil {
+			tally := 0
+			count := 0
+			for _, s := range sess {
+				inside := (q.Mintime <= s.Timestamp) && (s.Timestamp <= q.Maxtime)
+				if !inside {
+					continue
+				}
+
+				tally += s.Price
+				count += 1
+			}
+
+			var result uint32
+			if count != 0 {
+				result = uint32(tally / count)
+			}
+			resp := make([]byte, 4)
+			binary.BigEndian.PutUint32(resp, result)
+			c.Write(resp)
+			log.Println("query", q, "resp:", result)
+		}
+	}
 }
 
 func parsePacket(b []byte) (*Insert, *Query) {
@@ -59,9 +108,4 @@ func parsePacket(b []byte) (*Insert, *Query) {
 		}, nil
 	}
 	return nil, nil
-}
-
-func means(c net.Conn) {
-	b := make([]byte, 9)
-	c.Read(b)
 }
