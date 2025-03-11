@@ -8,6 +8,16 @@ import (
 	"net"
 )
 
+type PrimeRequest struct {
+	Method string `json:"method"`
+	Number int    `json:"number"`
+}
+
+type PrimeResponse struct {
+	Method string `json:"method"`
+	Prime  bool   `json:"prime"`
+}
+
 func main() {
 	addr := ":8000"
 	ln, err := net.Listen("tcp", addr)
@@ -24,38 +34,70 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		prime(c)
+		go prime(c)
 	}
-}
-
-type PrimeRequest struct {
-	Method string `json:"method"`
-	Number int    `json:"number"`
 }
 
 func prime(c net.Conn) {
 	defer c.Close()
 
 	sc := bufio.NewScanner(c)
+	d := json.NewEncoder(c)
+
 	for sc.Scan() {
 		s := sc.Text()
-		handleRequest(s)
+		pr, err := parsePrimeRequest(s)
+		var resp PrimeResponse
+
+		if err != nil {
+			fmt.Println(err)
+			d.Encode(resp) // a response struct with zero values is considered malformed
+			break
+		}
+
+		resp.Method = "isPrime"
+		resp.Prime = isPrime(pr.Number)
+		d.Encode(resp)
 	}
 	fmt.Println("EOF")
 }
 
-func handleRequest(s string) {
+func isPrime(number int) bool {
+	return true
+}
+
+func parsePrimeRequest(s string) (*PrimeRequest, error) {
+	// to differentiate zero values and non existant fields
+	type PrimeRequestNullable struct {
+		Method *string `json:"method"`
+		Number *int    `json:"number"`
+	}
+
 	b := new(bytes.Buffer)
 	b.WriteString(s)
 
 	d := json.NewDecoder(b)
 
-	var pr PrimeRequest
+	var pr PrimeRequestNullable
 	err := d.Decode(&pr)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return nil, err
 	}
 
-	fmt.Println(pr)
+	if pr.Method == nil {
+		return nil, fmt.Errorf("no method")
+	}
+
+	if pr.Number == nil {
+		return nil, fmt.Errorf("no number")
+	}
+
+	if *pr.Method != "isPrime" {
+		return nil, fmt.Errorf("wrong method")
+	}
+
+	return &PrimeRequest{
+		Method: *pr.Method,
+		Number: *pr.Number,
+	}, nil
 }
