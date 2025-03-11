@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 )
@@ -17,9 +18,18 @@ func main() {
 	defer ln.Close()
 
 	for {
-		_, err := ln.Accept()
+		c, err := ln.Accept()
 		if err != nil {
 			panic(err)
 		}
+		prime(c)
+	}
+}
+
+func prime(c net.Conn) {
+	defer c.Close()
+	sc := bufio.NewScanner(c)
+	for sc.Scan() {
+		fmt.Println(sc.Text())
 	}
 }
