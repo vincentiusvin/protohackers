@@ -10,8 +10,8 @@ import (
 )
 
 type PrimeRequest struct {
-	Method string `json:"method"`
-	Number int    `json:"number"`
+	Method string  `json:"method"`
+	Number float64 `json:"number"`
 }
 
 type PrimeResponse struct {
@@ -64,14 +64,16 @@ func prime(c net.Conn) {
 	fmt.Println("EOF")
 }
 
-func isPrime(number int) bool {
+func isPrime(number float64) bool {
 	if number <= 1 {
 		return false
 	}
 
-	sq := int(math.Sqrt(float64(number)))
-	for i := 2; i < sq+1; i++ {
-		if (number % i) == 0 {
+	sq := math.Floor(math.Sqrt(number))
+	var i float64
+	for i = 2; i <= sq; i++ {
+		m := math.Mod(number, i)
+		if m == 0 {
 			return false
 		}
 	}
@@ -81,8 +83,8 @@ func isPrime(number int) bool {
 func parsePrimeRequest(s string) (*PrimeRequest, error) {
 	// to differentiate zero values and non existant fields
 	type PrimeRequestNullable struct {
-		Method *string `json:"method"`
-		Number *int    `json:"number"`
+		Method *string  `json:"method"`
+		Number *float64 `json:"number"`
 	}
 
 	b := new(bytes.Buffer)

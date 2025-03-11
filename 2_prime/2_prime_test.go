@@ -1,12 +1,12 @@
 package main
 
 import (
-	"strconv"
+	"fmt"
 	"testing"
 )
 
 type IsPrimeCases struct {
-	in  int
+	in  float64
 	exp bool
 }
 
@@ -52,13 +52,17 @@ func TestIsPrime(t *testing.T) {
 			in:  101,
 			exp: true,
 		},
+		{
+			in:  91028332887393654427978476145102147254121969766630449978,
+			exp: false,
+		},
 	}
 
 	for _, c := range cases {
 		in := c.in
 		exp := c.exp
 
-		t.Run(strconv.Itoa(in), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%v", in), func(t *testing.T) {
 			out := isPrime(in)
 
 			if out != exp {
