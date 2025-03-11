@@ -18,12 +18,12 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		echo3(c)
+		Echo3(c)
 	}
 }
 
 // naive implementation with for loops
-func echo1(c net.Conn) {
+func Echo1(c net.Conn) {
 	for {
 		sl := make([]byte, 64)
 		n, err := c.Read(sl)
@@ -42,7 +42,7 @@ func echo1(c net.Conn) {
 }
 
 // chans
-func echo2(c net.Conn) {
+func Echo2(c net.Conn) {
 	cha := make(chan []byte)
 
 	go func() {
@@ -65,6 +65,6 @@ func echo2(c net.Conn) {
 	}
 }
 
-func echo3(c net.Conn) {
+func Echo3(c net.Conn) {
 	io.Copy(c, c)
 }
