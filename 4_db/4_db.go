@@ -5,29 +5,32 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
 	"strings"
 )
 
-// You need to reply on the same port as you are listening.
-// Tried using Dial, didn't work
-
 func main() {
-	addr := ":8000"
-	ln, err := net.ListenPacket("udp", addr)
+	port := 8000
+	// use this instead of ListenPacket since we need to reply
+	// on the same port as we are listening.
+	// see commit ae9af33
+	c, err := net.ListenUDP("udp", &net.UDPAddr{
+		Port: port,
+	})
 	if err != nil {
 		panic(err)
 	}
 
-	log.Println("Server listening at " + addr)
+	log.Println("Server listening at port" + strconv.Itoa(port))
 
-	defer ln.Close()
+	defer c.Close()
 
 	m := make(map[string]string)
 	m["version"] = "database punya udin 1.0"
 
 	for {
 		b := make([]byte, 1000)
-		_, addr, err := ln.ReadFrom(b)
+		_, addr, err := c.ReadFromUDP(b)
 		if err != nil {
 			panic(err)
 		}
@@ -47,13 +50,7 @@ func main() {
 		if ret != nil {
 			retval := fmt.Sprintf("%v=%v", ret.Key, m[ret.Key])
 
-			c, err := net.Dial("udp", addr.String())
-			if err != nil {
-				panic(err)
-			}
-			c.Write([]byte(retval))
-			c.Close()
-
+			c.WriteToUDP([]byte(retval), addr)
 			log.Println("ret for", ret.Key, ":", m[ret.Key])
 		}
 	}
