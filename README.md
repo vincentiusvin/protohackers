@@ -8,7 +8,7 @@ To deploy, run
 ./deploy.sh 0_echo/0_echo.go
 ```
 
-This will compile and scp the executable to your server. You can run it there.
+This will compile and scp the executable to your (my) server. You can run it there.
 
 ```bash
 ./0_echo
