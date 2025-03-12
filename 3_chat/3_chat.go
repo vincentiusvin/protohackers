@@ -109,6 +109,7 @@ func (ch *Chatroom) AddUser(m *Member) {
 	ch.broadcast(enterMsg)
 
 	ch.members = append(ch.members, m)
+	log.Println(enterMsg)
 }
 
 func (ch *Chatroom) RemoveUser(m *Member) {
@@ -116,18 +117,10 @@ func (ch *Chatroom) RemoveUser(m *Member) {
 	defer ch.mu.Unlock()
 
 	m.Send(ch.UserList())
-	enterMsg := fmt.Sprintf("* %v has left the room", m.name)
-	ch.broadcast(enterMsg, m)
-
-	var cutIdx int
-	for i, c := range ch.members {
-		if c == m {
-			cutIdx = i
-			break
-		}
-	}
-
-	ch.members = append(ch.members[:cutIdx], ch.members[cutIdx+1:]...)
+	leaveMsg := fmt.Sprintf("* %v has left the room", m.name)
+	ch.broadcast(leaveMsg, m)
+	Remove(ch.members, m)
+	log.Println(leaveMsg)
 }
 
 func (ch *Chatroom) UserList() string {
@@ -146,6 +139,7 @@ func (ch *Chatroom) handleConnection(c net.Conn) {
 	m := &Member{
 		conn: c,
 	}
+
 	m.Send("Welcome to budgetchat! What shall I call you?\n")
 	name := m.Recv()
 	if name == "" {
@@ -153,5 +147,13 @@ func (ch *Chatroom) handleConnection(c net.Conn) {
 		return
 	}
 	m.name = name
+
 	ch.AddUser(m)
+	defer ch.RemoveUser(m)
+
+	sc := bufio.NewScanner(c)
+	for sc.Scan() {
+		msg := sc.Text()
+		ch.SendMessage(m, msg)
+	}
 }
