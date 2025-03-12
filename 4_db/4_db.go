@@ -21,7 +21,7 @@ func main() {
 		panic(err)
 	}
 
-	log.Println("Server listening at port" + strconv.Itoa(port))
+	log.Println("Server listening at port", strconv.Itoa(port))
 
 	defer c.Close()
 
