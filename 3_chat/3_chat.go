@@ -27,8 +27,29 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		log.Println(c.RemoteAddr(), "connected")
 		go ch.handleConnection(c)
 	}
+}
+
+func validateName(s string) bool {
+	if s == "" {
+		return false
+	}
+
+	for _, c := range s {
+		uppercase := (c >= 'A') && (c <= 'Z')
+		lowercase := (c >= 'a') && (c <= 'z')
+		digits := (c >= '0') && (c <= '9')
+
+		if uppercase || lowercase || digits {
+			continue
+		}
+
+		return false
+	}
+
+	return true
 }
 
 func (ch *Chatroom) handleConnection(c net.Conn) {
@@ -40,7 +61,7 @@ func (ch *Chatroom) handleConnection(c net.Conn) {
 
 	m.Send("Welcome to budgetchat! What shall I call you?\n")
 	name := m.Recv()
-	if name == "" {
+	if !validateName(name) {
 		m.Send("Sorry, your name is invalid. Disconnecting now...\n")
 		return
 	}
@@ -127,7 +148,6 @@ func (ch *Chatroom) RemoveUser(m *Member) {
 	ch.mu.Lock()
 	defer ch.mu.Unlock()
 
-	m.Send(ch.userList())
 	leaveMsg := fmt.Sprintf("* %v has left the room\n", m.name)
 	ch.broadcast(leaveMsg, m)
 	ch.members = Remove(ch.members, m)
@@ -141,7 +161,7 @@ func (ch *Chatroom) userList() string {
 	}
 	members_string := strings.Join(members, ", ")
 
-	return "The room contains: " + members_string + "\n"
+	return "* The room contains: " + members_string + "\n"
 }
 
 func Remove[T comparable](s []T, elem T) []T {
