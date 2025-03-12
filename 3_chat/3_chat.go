@@ -31,19 +31,29 @@ func main() {
 	}
 }
 
-func Remove[T comparable](s []T, elem T) []T {
-	for i, c := range s {
-		if c != elem {
-			continue
-		}
+func (ch *Chatroom) handleConnection(c net.Conn) {
+	defer c.Close()
 
-		var after []T
-		if len(s) > i+1 {
-			after = s[i+1:]
-		}
-		return append(s[:i], after...)
+	m := &Member{
+		conn: c,
 	}
-	return s
+
+	m.Send("Welcome to budgetchat! What shall I call you?\n")
+	name := m.Recv()
+	if name == "" {
+		m.Send("Sorry, your name is invalid. Disconnecting now...\n")
+		return
+	}
+	m.name = name
+
+	ch.AddUser(m)
+	defer ch.RemoveUser(m)
+
+	sc := bufio.NewScanner(c)
+	for sc.Scan() {
+		msg := sc.Text()
+		ch.SendMessage(m, msg)
+	}
 }
 
 type Member struct {
@@ -75,7 +85,8 @@ func MakeChatroom() *Chatroom {
 }
 
 func (ch *Chatroom) broadcast(msg string, exception ...*Member) {
-	inException := func(toCheck *Member) bool { // turn this into a hashmap if performance is bad
+	// turn this into a map if performance is bad
+	inException := func(toCheck *Member) bool {
 		for _, member := range exception {
 			if member == toCheck {
 				return true
@@ -104,8 +115,8 @@ func (ch *Chatroom) AddUser(m *Member) {
 	ch.mu.Lock()
 	defer ch.mu.Unlock()
 
-	m.Send(ch.UserList())
-	enterMsg := fmt.Sprintf("* %v has entered the room", m.name)
+	m.Send(ch.userList())
+	enterMsg := fmt.Sprintf("* %v has entered the room\n", m.name)
 	ch.broadcast(enterMsg)
 
 	ch.members = append(ch.members, m)
@@ -116,14 +127,14 @@ func (ch *Chatroom) RemoveUser(m *Member) {
 	ch.mu.Lock()
 	defer ch.mu.Unlock()
 
-	m.Send(ch.UserList())
-	leaveMsg := fmt.Sprintf("* %v has left the room", m.name)
+	m.Send(ch.userList())
+	leaveMsg := fmt.Sprintf("* %v has left the room\n", m.name)
 	ch.broadcast(leaveMsg, m)
-	Remove(ch.members, m)
+	ch.members = Remove(ch.members, m)
 	log.Println(leaveMsg)
 }
 
-func (ch *Chatroom) UserList() string {
+func (ch *Chatroom) userList() string {
 	members := make([]string, 0)
 	for _, c := range ch.members {
 		members = append(members, c.name)
@@ -133,27 +144,17 @@ func (ch *Chatroom) UserList() string {
 	return "The room contains: " + members_string + "\n"
 }
 
-func (ch *Chatroom) handleConnection(c net.Conn) {
-	defer c.Close()
+func Remove[T comparable](s []T, elem T) []T {
+	for i, c := range s {
+		if c != elem {
+			continue
+		}
 
-	m := &Member{
-		conn: c,
+		var after []T
+		if len(s) > i+1 {
+			after = s[i+1:]
+		}
+		return append(s[:i], after...)
 	}
-
-	m.Send("Welcome to budgetchat! What shall I call you?\n")
-	name := m.Recv()
-	if name == "" {
-		m.Send("Sorry, your name is invalid. Disconnecting now...\n")
-		return
-	}
-	m.name = name
-
-	ch.AddUser(m)
-	defer ch.RemoveUser(m)
-
-	sc := bufio.NewScanner(c)
-	for sc.Scan() {
-		msg := sc.Text()
-		ch.SendMessage(m, msg)
-	}
+	return s
 }
