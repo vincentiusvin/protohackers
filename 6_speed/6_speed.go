@@ -41,6 +41,11 @@ type IAmACamera struct {
 	Limit uint16
 }
 
+type IAmADispatcher struct {
+	Numroads uint8
+	Roads    []uint16
+}
+
 type ParseFunc[T any] func(b []byte) (T, []byte)
 
 func parsePlate(b []byte) (*Plate, []byte) {
@@ -62,6 +67,24 @@ func parseIAmACamera(b []byte) (*IAmACamera, []byte) {
 		Road:  road,
 		Mile:  mile,
 		Limit: limit,
+	}, b
+}
+
+func parseIAmADispatcher(b []byte) (*IAmADispatcher, []byte) {
+	numroads, b := parseUint8(b)
+	var i uint8
+	roads := make([]uint16, 0)
+
+	for i = 0; i < numroads; i++ {
+		road, new_b := parseUint16(b)
+		b = new_b
+		roads = append(roads, road)
+
+	}
+
+	return &IAmADispatcher{
+		Numroads: numroads,
+		Roads:    roads,
 	}, b
 }
 
