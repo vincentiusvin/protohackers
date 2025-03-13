@@ -30,7 +30,40 @@ func handleConnection(c net.Conn) {
 	defer c.Close()
 }
 
+type Plate struct {
+	Plate     string
+	Timestamp uint32
+}
+
+type IAmACamera struct {
+	Road  uint16
+	Mile  uint16
+	Limit uint16
+}
+
 type ParseFunc[T any] func(b []byte) (T, []byte)
+
+func parsePlate(b []byte) (*Plate, []byte) {
+	plate, b := parseString(b)
+	timestamp, b := parseUint32(b)
+
+	return &Plate{
+		Plate:     plate,
+		Timestamp: timestamp,
+	}, b
+}
+
+func parseIAmACamera(b []byte) (*IAmACamera, []byte) {
+	road, b := parseUint16(b)
+	mile, b := parseUint16(b)
+	limit, b := parseUint16(b)
+
+	return &IAmACamera{
+		Road:  road,
+		Mile:  mile,
+		Limit: limit,
+	}, b
+}
 
 // Consumes tokens from b to produce a string
 // Returns number of bytes consumed and the final string
