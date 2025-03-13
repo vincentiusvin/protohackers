@@ -104,7 +104,7 @@ func TestParser(t *testing.T) {
 	}
 
 	dispeq := func(ia1, ia2 *IAmADispatcher) bool {
-		return slices.Equal[[]uint16](ia1.Roads, ia2.Roads)
+		return slices.Equal(ia1.Roads, ia2.Roads)
 	}
 	dispatchCases := []ParsingCases[*IAmADispatcher]{
 		{
@@ -115,6 +115,19 @@ func TestParser(t *testing.T) {
 			newLen: 0,
 			fn:     parseIAmADispatcher,
 			eq:     dispeq,
+		},
+	}
+
+	hbeq := func(wh1, wh2 *WantHeartbeat) bool { return wh1.Interval == wh2.Interval }
+	hbcases := []ParsingCases[*WantHeartbeat]{
+		{
+			in: []byte{0x00, 0x00, 0x00, 0x10},
+			expected: &WantHeartbeat{
+				Interval: 16,
+			},
+			newLen: 0,
+			fn:     parseWantHeartbeat,
+			eq:     hbeq,
 		},
 	}
 
@@ -135,7 +148,7 @@ func TestParser(t *testing.T) {
 	t.Run("dispatch cases", func(t *testing.T) {
 		runParsingCases(t, dispatchCases)
 	})
-
+	t.Run("hb cases", func(t *testing.T) {
+		runParsingCases(t, hbcases)
+	})
 }
-
-// i love generics

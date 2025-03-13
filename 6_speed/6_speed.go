@@ -45,6 +45,10 @@ type IAmADispatcher struct {
 	Roads []uint16
 }
 
+type WantHeartbeat struct {
+	Interval uint32
+}
+
 type ParseFunc[T any] func(b []byte) (T, []byte)
 
 func parsePlate(b []byte) (*Plate, []byte) {
@@ -83,6 +87,14 @@ func parseIAmADispatcher(b []byte) (*IAmADispatcher, []byte) {
 
 	return &IAmADispatcher{
 		Roads: roads,
+	}, b
+}
+
+func parseWantHeartbeat(b []byte) (*WantHeartbeat, []byte) {
+	hb, b := parseUint32(b)
+
+	return &WantHeartbeat{
+		Interval: hb,
 	}, b
 }
 
