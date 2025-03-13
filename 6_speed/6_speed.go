@@ -51,6 +51,24 @@ type WantHeartbeat struct {
 
 type ParseFunc[T any] func(b []byte) (T, []byte)
 
+func parseInfer(b []byte) (any, []byte) {
+	if len(b) == 0 {
+		return nil, b
+	}
+	typeHex, b := parseUint8(b)
+	switch typeHex {
+	case 0x20:
+		return parsePlate(b)
+	case 0x40:
+		return parseWantHeartbeat(b)
+	case 0x80:
+		return parseIAmACamera(b)
+	case 0x81:
+		return parseIAmADispatcher(b)
+	}
+	return nil, b
+}
+
 func parsePlate(b []byte) (*Plate, []byte) {
 	plate, b := parseString(b)
 	timestamp, b := parseUint32(b)
