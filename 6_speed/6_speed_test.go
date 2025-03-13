@@ -1,6 +1,7 @@
 package main
 
 import (
+	"slices"
 	"testing"
 )
 
@@ -102,6 +103,21 @@ func TestParser(t *testing.T) {
 		},
 	}
 
+	dispeq := func(ia1, ia2 *IAmADispatcher) bool {
+		return slices.Equal[[]uint16](ia1.Roads, ia2.Roads)
+	}
+	dispatchCases := []ParsingCases[*IAmADispatcher]{
+		{
+			in: []byte{0x03, 0x00, 0x42, 0x01, 0x70, 0x13, 0x88},
+			expected: &IAmADispatcher{
+				Roads: []uint16{66, 368, 5000},
+			},
+			newLen: 0,
+			fn:     parseIAmADispatcher,
+			eq:     dispeq,
+		},
+	}
+
 	t.Run("uint8 cases", func(t *testing.T) {
 		runParsingCases(t, uint8Cases)
 	})
@@ -115,6 +131,9 @@ func TestParser(t *testing.T) {
 	})
 	t.Run("camera cases", func(t *testing.T) {
 		runParsingCases(t, cameraCases)
+	})
+	t.Run("dispatch cases", func(t *testing.T) {
+		runParsingCases(t, dispatchCases)
 	})
 
 }

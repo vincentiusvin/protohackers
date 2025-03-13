@@ -42,8 +42,7 @@ type IAmACamera struct {
 }
 
 type IAmADispatcher struct {
-	Numroads uint8
-	Roads    []uint16
+	Roads []uint16
 }
 
 type ParseFunc[T any] func(b []byte) (T, []byte)
@@ -83,8 +82,7 @@ func parseIAmADispatcher(b []byte) (*IAmADispatcher, []byte) {
 	}
 
 	return &IAmADispatcher{
-		Numroads: numroads,
-		Roads:    roads,
+		Roads: roads,
 	}, b
 }
 
