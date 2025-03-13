@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"net"
 	"strings"
@@ -30,13 +29,19 @@ func main() {
 
 func connToChan(conn net.Conn) chan string {
 	cli_to_up := make(chan string)
-	sc := bufio.NewScanner(conn)
+	r := bufio.NewReader(conn)
 	go func() {
-		for sc.Scan() {
-			t := sc.Text()
-			cli_to_up <- t
+		// using this instead of scanner to prevent EOF packets without trailing newlines from being sent
+		for {
+			data, err := r.ReadBytes('\n')
+			if err != nil {
+				break
+			}
+			if len(data) > 0 { // strip the newline first
+				data = data[:len(data)-1]
+			}
+			cli_to_up <- string(data)
 		}
-		fmt.Println("closed")
 		close(cli_to_up)
 	}()
 	return cli_to_up
@@ -107,25 +112,25 @@ func handleConnection(client net.Conn) {
 			if !ok {
 				return
 			}
-			fmt.Println("client say:", cli_to_up_msg)
-			doctored_msg := boguscoined(cli_to_up_msg) + "\n"
-			_, err := upstream.Write([]byte(doctored_msg))
+			log.Println("client say:", cli_to_up_msg)
+			doctored_msg := boguscoined(cli_to_up_msg)
+			_, err := upstream.Write([]byte(doctored_msg + "\n"))
 			if err != nil {
 				panic(err)
 			}
-			fmt.Println("relayed to upstream:", doctored_msg)
+			log.Println("relayed to upstream:", doctored_msg)
 
 		case up_to_cli_msg, ok := <-up_to_cli:
 			if !ok {
 				return
 			}
-			fmt.Println("upstream say:", up_to_cli_msg)
-			doctored_msg := boguscoined(up_to_cli_msg) + "\n"
-			_, err := client.Write([]byte(doctored_msg))
+			log.Println("upstream say:", up_to_cli_msg)
+			doctored_msg := boguscoined(up_to_cli_msg)
+			_, err := client.Write([]byte(doctored_msg + "\n"))
 			if err != nil {
 				panic(err)
 			}
-			fmt.Println("relayed to client:", doctored_msg)
+			log.Println("relayed to client:", doctored_msg)
 		}
 	}
 }
