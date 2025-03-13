@@ -85,6 +85,23 @@ func TestParser(t *testing.T) {
 		},
 	}
 
+	cameq := func(ia1, ia2 *IAmACamera) bool {
+		return ia1.Limit == ia2.Limit && ia1.Mile == ia2.Mile && ia1.Road == ia2.Road
+	}
+	cameraCases := []ParsingCases[*IAmACamera]{
+		{
+			in: []byte{0x00, 0x42, 0x00, 0x64, 0x00, 0x3c},
+			expected: &IAmACamera{
+				Road:  66,
+				Mile:  100,
+				Limit: 60,
+			},
+			newLen: 0,
+			fn:     parseIAmACamera,
+			eq:     cameq,
+		},
+	}
+
 	t.Run("uint8 cases", func(t *testing.T) {
 		runParsingCases(t, uint8Cases)
 	})
@@ -95,6 +112,9 @@ func TestParser(t *testing.T) {
 
 	t.Run("plate cases", func(t *testing.T) {
 		runParsingCases(t, plateCases)
+	})
+	t.Run("camera cases", func(t *testing.T) {
+		runParsingCases(t, cameraCases)
 	})
 
 }
