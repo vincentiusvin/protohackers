@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 )
 
 func main() {
@@ -41,8 +42,43 @@ func connToChan(conn net.Conn) chan string {
 	return cli_to_up
 }
 
+func isAlphanum(s string) bool {
+	for _, c := range s {
+		uppercase := (c >= 'A') && (c <= 'Z')
+		lowercase := (c >= 'a') && (c <= 'z')
+		digits := (c >= '0') && (c <= '9')
+
+		if uppercase || lowercase || digits {
+			continue
+		}
+
+		return false
+	}
+	return true
+}
+
 func boguscoined(s string) string {
-	return s
+	tonycoin := "7YWHMfk9JZe0LM0g1ZauHuiSxhI"
+	splits := strings.Split(s, " ")
+	rets := make([]string, 0)
+	for _, split := range splits {
+		if len(split) < 26 || len(split) > 35 {
+			rets = append(rets, split)
+			continue
+		}
+		if split[0] != '7' {
+			rets = append(rets, split)
+			continue
+		}
+
+		if !isAlphanum(split) {
+			rets = append(rets, split)
+			continue
+		}
+
+		rets = append(rets, tonycoin)
+	}
+	return strings.Join(rets, " ")
 }
 
 func handleConnection(client net.Conn) {
