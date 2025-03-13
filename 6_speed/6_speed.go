@@ -140,10 +140,6 @@ func parseUint32(b []byte) (uint32, []byte) {
 	return binary.BigEndian.Uint32(b), b[4:]
 }
 
-func encodeHeartbeat() []byte {
-	return []byte{0x41}
-}
-
 type Ticket struct {
 	Plate      string
 	Road       uint16
@@ -166,6 +162,14 @@ func encodeTicket(t *Ticket) []byte {
 	ret = binary.BigEndian.AppendUint32(ret, t.Timestamp2)
 	ret = binary.BigEndian.AppendUint16(ret, t.Speed)
 	return ret
+}
+
+func encodeHeartbeat() []byte {
+	return []byte{0x41}
+}
+
+func encodeError(err string) []byte {
+	return append([]byte{0x10}, encodeString(err)...)
 }
 
 func encodeString(s string) []byte {
