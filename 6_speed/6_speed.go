@@ -59,28 +59,23 @@ func handleConnectionLogic(ctx context.Context, incoming chan any, outgoing chan
 
 	for msg := range incoming {
 		switch v := msg.(type) {
-		case *infra.IAmACamera:
-			if clientType != None {
-				sendError("already another type")
+		case *infra.SpeedError:
+			sendError("this is a server message")
+
+		case *infra.Plate:
+			if clientType != Camera {
+				sendError("you are not a camera")
 				continue
 			}
 
-			clientType = Camera
-			log.Println("new camera", v)
-		case *infra.IAmADispatcher:
-			if clientType != None {
-				sendError("already another type")
-				continue
-			}
+		case *infra.Ticket:
+			sendError("this is a server message")
 
-			clientType = Dispatcher
-			log.Println("new dispatcher", v)
 		case *infra.WantHeartbeat:
 			if spawnedHb {
 				sendError("already sending heartbeat")
 				continue
 			}
-
 			go func() {
 				log.Println("starting heartbeat every", v.Interval, "ds")
 				for {
@@ -95,11 +90,51 @@ func handleConnectionLogic(ctx context.Context, incoming chan any, outgoing chan
 				}
 			}()
 			spawnedHb = true
-		case *infra.Plate:
-			if clientType != Camera {
-				sendError("you are not a camera")
+
+		case infra.Heartbeat:
+			sendError("this is a server message")
+
+		case *infra.IAmACamera:
+			if clientType != None {
+				sendError("already another type")
 				continue
 			}
+			clientType = Camera
+			log.Println("new camera", v)
+
+		case *infra.IAmADispatcher:
+			if clientType != None {
+				sendError("already another type")
+				continue
+			}
+			clientType = Dispatcher
+			log.Println("new dispatcher", v)
 		}
 	}
+}
+
+type Global struct {
+	cameras     []*infra.IAmACamera
+	dispatchers []*infra.IAmADispatcher
+	plates      []*infra.Plate
+}
+
+func MakeGlobal() *Global {
+	return &Global{
+		cameras:     make([]*infra.IAmACamera, 0),
+		dispatchers: make([]*infra.IAmADispatcher, 0),
+		plates:      make([]*infra.Plate, 0),
+	}
+}
+
+func (g *Global) AddCamera(cam *infra.IAmACamera) {
+	g.cameras = append(g.cameras, cam)
+}
+
+func (g *Global) AddDispatcher(dis *infra.IAmADispatcher) {
+	g.dispatchers = append(g.dispatchers, dis)
+}
+
+func (g *Global) AddPlates(dis *infra.IAmADispatcher) {
+
 }

@@ -44,6 +44,12 @@ func ParseMessages(r io.Reader, cancel context.CancelFunc) chan any {
 				ch <- plate.Value
 			}
 
+			tick := ParseTicket(curr)
+			if tick.Ok {
+				curr = tick.Next
+				ch <- tick.Value
+			}
+
 			whb := ParseWantHeartbeat(curr)
 			if whb.Ok {
 				curr = whb.Next
