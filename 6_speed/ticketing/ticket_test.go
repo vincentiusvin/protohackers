@@ -12,7 +12,7 @@ func TestTicketing(t *testing.T) {
 
 	var roadNum uint16 = 10
 	var plate string = "UN1X"
-	expected := infra.Ticket{
+	expected := &infra.Ticket{
 		Plate:      "UN1X",
 		Road:       10,
 		Mile1:      8,
@@ -22,7 +22,7 @@ func TestTicketing(t *testing.T) {
 		Speed:      8000,
 	}
 
-	outCh := make(chan infra.Ticket, 1)
+	outCh := make(chan *infra.Ticket, 1)
 	c.AddDispatcher([]uint16{roadNum}, outCh)
 
 	c.UpdateLimit(roadNum, 60)

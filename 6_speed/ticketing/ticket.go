@@ -19,7 +19,7 @@ type Plate struct {
 
 type Road struct {
 	num         uint16
-	dispatchers []chan infra.Ticket
+	dispatchers []chan *infra.Ticket
 	plates      map[string][]*Plate // map of plate number -> plate
 	limit       uint16
 }
@@ -39,7 +39,7 @@ func (g *Controller) getRoad(roadNum uint16) *Road {
 	if _, ok := g.roads[roadNum]; !ok {
 		g.roads[roadNum] = &Road{
 			num:         roadNum,
-			dispatchers: make([]chan infra.Ticket, 0),
+			dispatchers: make([]chan *infra.Ticket, 0),
 			plates:      make(map[string][]*Plate),
 		}
 	}
@@ -56,7 +56,7 @@ func (g *Controller) UpdateLimit(roadNum uint16, limit uint16) {
 	log.Printf("Road %v got speed limit updated to: %v", roadNum, limit)
 }
 
-func (g *Controller) AddDispatcher(roads []uint16, ch chan infra.Ticket) {
+func (g *Controller) AddDispatcher(roads []uint16, ch chan *infra.Ticket) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
@@ -108,7 +108,7 @@ func (g *Controller) AddPlates(plate *Plate) {
 		limit := float64(rd.limit)
 
 		if mph > limit {
-			rd.dispatchers[0] <- infra.Ticket{
+			rd.dispatchers[0] <- &infra.Ticket{
 				Plate:      pl.Plate,
 				Road:       rd.num,
 				Mile1:      lastPl.Mile,
