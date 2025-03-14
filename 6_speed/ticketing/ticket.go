@@ -1,11 +1,12 @@
 package ticketing
 
 import (
+	"fmt"
 	"log"
+	"math"
 	"protohackers/6_speed/infra"
 	"slices"
 	"sync"
-	"time"
 )
 
 type Plate struct {
@@ -73,14 +74,19 @@ func (rd *Road) getPlateRecords(plate string) []*Plate {
 	return rd.plates[plate]
 }
 
+func (pl *Plate) String() string {
+	return fmt.Sprintf("{%v %v %v %v %v}", pl.Mile, pl.Plate, pl.Road, pl.Ticketed, pl.Timestamp)
+}
+
 func (g *Controller) AddPlates(plate *Plate) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	rd := g.getRoad(plate.Road)
-	recs := rd.getPlateRecords(plate.Plate)
 
+	recs := rd.getPlateRecords(plate.Plate)
 	recs = append(recs, plate)
+	rd.plates[plate.Plate] = recs
 
 	log.Printf("Plate %v found on road %v at %v", plate.Plate, plate.Road, plate.Timestamp)
 
@@ -90,15 +96,29 @@ func (g *Controller) AddPlates(plate *Plate) {
 
 	for i, pl := range recs {
 		last := i - 1
-		if last < 0 || last >= len(recs) {
+		if pl.Ticketed || last < 0 || last >= len(recs) {
 			continue
 		}
 		lastPl := recs[last]
 
-		delta := lastPl.Timestamp - pl.Timestamp
-		dur := time.Duration(delta)
-		limit := rd.limit
-		log.Println(dur, limit)
+		deltaT := float64(pl.Timestamp - lastPl.Timestamp)
+		deltaMile := float64(pl.Mile - lastPl.Mile)
 
+		mph := math.Round(3600 * deltaMile / deltaT)
+		limit := float64(rd.limit)
+
+		if mph > limit {
+			rd.dispatchers[0] <- infra.Ticket{
+				Plate:      pl.Plate,
+				Road:       rd.num,
+				Mile1:      lastPl.Mile,
+				Timestamp1: lastPl.Timestamp,
+				Mile2:      pl.Mile,
+				Timestamp2: pl.Timestamp,
+				Speed:      uint16(100 * mph),
+			}
+			pl.Ticketed = true
+			log.Printf("Ticketed %v. Speed: %v > %v\n", plate.Plate, mph, limit)
+		}
 	}
 }
