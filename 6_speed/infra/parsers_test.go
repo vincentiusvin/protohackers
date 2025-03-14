@@ -30,6 +30,33 @@ func runParsingCases[T any](t *testing.T, cases []ParsingCases[T]) {
 }
 
 func TestParser(t *testing.T) {
+	t.Run("error cases", func(t *testing.T) {
+		erreq := func(p1, p2 *infra.SpeedError) bool {
+			return p1.Msg == p2.Msg
+		}
+		errCases := []ParsingCases[*infra.SpeedError]{
+			{
+				in: []byte{0x10, 0x03, 0x62, 0x61, 0x64},
+				expected: &infra.SpeedError{
+					Msg: "bad",
+				},
+				newLen: 0,
+				fn:     infra.ParseError,
+				eq:     erreq,
+			},
+			{
+				in: []byte{0x10, 0x03, 0x62, 0x61, 0x64, 0x20},
+				expected: &infra.SpeedError{
+					Msg: "bad",
+				},
+				newLen: 1,
+				fn:     infra.ParseError,
+				eq:     erreq,
+			},
+		}
+		runParsingCases(t, errCases)
+	})
+
 	t.Run("plate cases", func(t *testing.T) {
 		pleq := func(p1, p2 *infra.Plate) bool {
 			return p1.Plate == p2.Plate && p1.Timestamp == p2.Timestamp
@@ -47,6 +74,36 @@ func TestParser(t *testing.T) {
 			},
 		}
 		runParsingCases(t, plateCases)
+	})
+
+	t.Run("hb cases", func(t *testing.T) {
+		hbeq := func(wh1, wh2 infra.Heartbeat) bool { return true }
+		hbcases := []ParsingCases[infra.Heartbeat]{
+			{
+				in:       []byte{0x41},
+				expected: infra.Heartbeat{},
+				newLen:   0,
+				fn:       infra.ParseHeartbeat,
+				eq:       hbeq,
+			},
+		}
+		runParsingCases(t, hbcases)
+	})
+
+	t.Run("want hb cases", func(t *testing.T) {
+		hbeq := func(wh1, wh2 *infra.WantHeartbeat) bool { return wh1.Interval == wh2.Interval }
+		hbcases := []ParsingCases[*infra.WantHeartbeat]{
+			{
+				in: []byte{0x40, 0x00, 0x00, 0x00, 0x10},
+				expected: &infra.WantHeartbeat{
+					Interval: 16,
+				},
+				newLen: 0,
+				fn:     infra.ParseWantHeartbeat,
+				eq:     hbeq,
+			},
+		}
+		runParsingCases(t, hbcases)
 	})
 
 	t.Run("camera cases", func(t *testing.T) {
@@ -86,19 +143,4 @@ func TestParser(t *testing.T) {
 		runParsingCases(t, dispatchCases)
 	})
 
-	t.Run("hb cases", func(t *testing.T) {
-		hbeq := func(wh1, wh2 *infra.WantHeartbeat) bool { return wh1.Interval == wh2.Interval }
-		hbcases := []ParsingCases[*infra.WantHeartbeat]{
-			{
-				in: []byte{0x40, 0x00, 0x00, 0x00, 0x10},
-				expected: &infra.WantHeartbeat{
-					Interval: 16,
-				},
-				newLen: 0,
-				fn:     infra.ParseWantHeartbeat,
-				eq:     hbeq,
-			},
-		}
-		runParsingCases(t, hbcases)
-	})
 }

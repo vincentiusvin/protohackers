@@ -29,6 +29,30 @@ func ParseMessages(r io.Reader) chan any {
 			}
 			curr = append(curr, b)
 
+			spe_err := ParseError(curr)
+			if spe_err.Ok {
+				curr = spe_err.Next
+				ch <- spe_err.Value
+			}
+
+			plate := ParsePlate(curr)
+			if plate.Ok {
+				curr = plate.Next
+				ch <- plate.Value
+			}
+
+			whb := ParseWantHeartbeat(curr)
+			if whb.Ok {
+				curr = whb.Next
+				ch <- whb
+			}
+
+			hb := ParseHeartbeat(curr)
+			if hb.Ok {
+				curr = hb.Next
+				ch <- hb
+			}
+
 			cam := ParseIAmACamera(curr)
 			if cam.Ok {
 				curr = cam.Next
@@ -41,17 +65,6 @@ func ParseMessages(r io.Reader) chan any {
 				ch <- disp.Value
 			}
 
-			plate := ParsePlate(curr)
-			if plate.Ok {
-				curr = plate.Next
-				ch <- plate.Value
-			}
-
-			hb := ParseWantHeartbeat(curr)
-			if hb.Ok {
-				curr = hb.Next
-				ch <- hb
-			}
 		}
 	}()
 
@@ -72,7 +85,7 @@ func ParseError(b []byte) ParseResult[*SpeedError] {
 	}
 
 	ret.Ok = true
-	ret.Next = typeHex.Next
+	ret.Next = msg.Next
 	ret.Value = &SpeedError{
 		Msg: msg.Value,
 	}
