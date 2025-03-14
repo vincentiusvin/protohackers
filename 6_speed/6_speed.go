@@ -98,6 +98,7 @@ func handleConnectionLogic(ctx context.Context, incoming chan any, outgoing chan
 					select {
 					case <-ctx.Done():
 						log.Println("stopped heartbeat every", v.Interval, "ds")
+						close(outgoing)
 						return
 					case outgoing <- infra.Heartbeat{}:
 						deciseconds := time.Second / 10

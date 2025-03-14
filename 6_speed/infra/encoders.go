@@ -14,7 +14,6 @@ func EncodeMessages(ctx context.Context, w io.Writer) chan Encode {
 	ch := make(chan Encode)
 
 	go func() {
-		defer close(ch)
 		for {
 			select {
 			case <-ctx.Done():
@@ -22,7 +21,6 @@ func EncodeMessages(ctx context.Context, w io.Writer) chan Encode {
 			case v := <-ch:
 				w.Write(v.Encode())
 			}
-
 		}
 	}()
 
