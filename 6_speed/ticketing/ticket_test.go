@@ -1,13 +1,14 @@
 package ticketing_test
 
 import (
+	"log"
 	"protohackers/6_speed/infra"
 	"protohackers/6_speed/ticketing"
 	"reflect"
 	"testing"
 )
 
-func TestTicketing(t *testing.T) {
+func TestTicketingBasic(t *testing.T) {
 	c := ticketing.MakeController()
 
 	var roadNum uint16 = 10
@@ -46,5 +47,47 @@ func TestTicketing(t *testing.T) {
 
 	if !reflect.DeepEqual(out, expected) {
 		t.Fatalf("ticket different. expected %v. got %v", expected, out)
+	}
+}
+
+// 3 traffic violations but we should get 2 tickets
+func TestTicketingDay(t *testing.T) {
+	log.Println("2")
+	c := ticketing.MakeController()
+
+	var roadNum uint16 = 10
+	var plate string = "UN1X"
+
+	c.UpdateLimit(roadNum, 60)
+
+	c.AddPlates(&ticketing.Plate{
+		Plate:     plate,
+		Road:      roadNum,
+		Mile:      8,
+		Timestamp: 0,
+	})
+
+	c.AddPlates(&ticketing.Plate{
+		Plate:     plate,
+		Road:      roadNum,
+		Mile:      9,
+		Timestamp: 45,
+	})
+
+	c.AddPlates(&ticketing.Plate{
+		Plate:     plate,
+		Road:      roadNum,
+		Mile:      10,
+		Timestamp: 90,
+	})
+
+	outCh := make(chan *infra.Ticket, 2)
+	c.AddDispatcher([]uint16{roadNum}, outCh)
+	<-outCh
+
+	select {
+	case <-outCh:
+		t.Fatalf("got two tickets on same day. expected only 1")
+	default:
 	}
 }

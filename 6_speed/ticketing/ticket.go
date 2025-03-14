@@ -114,9 +114,18 @@ func (g *Controller) AddPlates(plate *Plate) {
 		return int(a.Timestamp) - int(b.Timestamp)
 	})
 
+	g.issueTickets(plate.Road, plate.Plate)
+}
+
+func (g *Controller) issueTickets(road uint16, plate string) {
+	rd := g.getRoad(road)
+	recs := rd.getPlateRecords(plate)
+
+	violatedDays := make(map[int]bool)
+
 	for i, pl := range recs {
 		last := i - 1
-		if pl.Ticketed || last < 0 || last >= len(recs) {
+		if last < 0 || last >= len(recs) {
 			continue
 		}
 		lastPl := recs[last]
@@ -127,7 +136,29 @@ func (g *Controller) AddPlates(plate *Plate) {
 		mph := math.Round(3600 * deltaMile / deltaT)
 		limit := float64(rd.limit)
 
-		if mph > limit {
+		if mph <= limit {
+			continue
+		}
+
+		startDay := int(math.Floor(float64(lastPl.Timestamp) / 86400))
+		endDay := int(math.Floor(float64(pl.Timestamp) / 86400))
+
+		log.Printf("Ticketing %v. Speed: %v > %v. Days: %v-%v\n", pl.Plate, mph, limit, startDay, endDay)
+
+		// we still need to process previous tickets
+		// just prevent it from sending the ticket over
+		// todo: find a better way to do this
+		for currDay := startDay; currDay <= endDay; currDay += 1 {
+			if violatedDays[currDay] {
+				log.Printf("Skipped ticketing for day %v due to previous ticket", currDay)
+				continue
+			}
+			violatedDays[currDay] = true
+
+			if pl.Ticketed {
+				continue
+			}
+			log.Printf("Ticketing for day %v", currDay)
 			rd.addTicket(
 				&infra.Ticket{
 					Plate:      pl.Plate,
@@ -137,9 +168,10 @@ func (g *Controller) AddPlates(plate *Plate) {
 					Mile2:      pl.Mile,
 					Timestamp2: pl.Timestamp,
 					Speed:      uint16(100 * mph),
-				})
-			pl.Ticketed = true
-			log.Printf("Ticketed %v. Speed: %v > %v\n", plate.Plate, mph, limit)
+				},
+			)
 		}
+
+		pl.Ticketed = true
 	}
 }
