@@ -56,30 +56,54 @@ type ParseResult[T any] struct {
 	Ok    bool
 }
 
+type ThenResult[T any, U any] struct {
+	Value1 T
+	Value2 U
+}
+
+func then[T any, U any](fn1 ParseFunc[T], fn2 ParseFunc[U]) ParseFunc[ThenResult[T, U]] {
+	return func(b []byte) ParseResult[ThenResult[T, U]] {
+		var ret ParseResult[ThenResult[T, U]]
+		val1 := fn1(b)
+		if !val1.Ok {
+			return ret
+		}
+
+		val2 := fn2(val1.Next)
+		if !val2.Ok {
+			return ret
+		}
+
+		ret.Ok = true
+		ret.Value = ThenResult[T, U]{
+			Value1: val1.Value,
+			Value2: val2.Value,
+		}
+		ret.Next = val2.Next
+
+		return ret
+	}
+}
+
 func parsePlate(b []byte) ParseResult[*Plate] {
 	var ret ParseResult[*Plate]
 
-	typeHex := parseUint8(b)
-	if !typeHex.Ok || typeHex.Value != 0x20 {
+	iamgoingtohell := then(then(parseUint8, parseString), parseUint32)(b)
+
+	hexCode := iamgoingtohell.Value.Value1.Value1
+	if hexCode != 0x20 {
 		return ret
 	}
 
-	plate := parseString(typeHex.Next)
-	if !plate.Ok {
-		return ret
-	}
-
-	timestamp := parseUint32(plate.Next)
-	if !timestamp.Ok {
-		return ret
-	}
+	plate := iamgoingtohell.Value.Value1.Value2
+	timestamp := iamgoingtohell.Value.Value2
 
 	ret.Ok = true
 	ret.Value = &Plate{
-		Plate:     plate.Value,
-		Timestamp: timestamp.Value,
+		Plate:     plate,
+		Timestamp: timestamp,
 	}
-	ret.Next = timestamp.Next
+	ret.Next = iamgoingtohell.Next
 	return ret
 }
 
