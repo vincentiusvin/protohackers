@@ -30,49 +30,6 @@ func runParsingCases[T any](t *testing.T, cases []ParsingCases[T]) {
 }
 
 func TestParser(t *testing.T) {
-	uint8eq := func(u1, u2 uint8) bool { return u1 == u2 }
-	uint8Cases := []ParsingCases[uint8]{
-		{
-			in:       []byte{0x03, 0x66, 0x6f, 0x6f, 0x00, 0x05},
-			expected: 0x03,
-			newLen:   5,
-			fn:       infra.ParseUint8,
-			eq:       uint8eq,
-		},
-		{
-			in:       []byte{0x01},
-			expected: 0x01,
-			newLen:   0,
-			fn:       infra.ParseUint8,
-			eq:       uint8eq,
-		},
-		{
-			in:       []byte{0x08, 0x45, 0x6C, 0x62, 0x65, 0x72, 0x65, 0x74, 0x68, 0x01, 0x02},
-			expected: 0x08,
-			newLen:   10,
-			fn:       infra.ParseUint8,
-			eq:       uint8eq,
-		},
-	}
-
-	streq := func(s1, s2 string) bool { return s1 == s2 }
-	stringCases := []ParsingCases[string]{
-		{
-			in:       []byte{0x03, 0x66, 0x6f, 0x6f, 0x00},
-			expected: "foo",
-			newLen:   1,
-			fn:       infra.ParseString,
-			eq:       streq,
-		},
-		{
-			in:       []byte{0x08, 0x45, 0x6C, 0x62, 0x65, 0x72, 0x65, 0x74, 0x68, 0x01, 0x02},
-			expected: "Elbereth",
-			newLen:   2,
-			fn:       infra.ParseString,
-			eq:       streq,
-		},
-	}
-
 	pleq := func(p1, p2 *infra.Plate) bool {
 		return p1.Plate == p2.Plate && p1.Timestamp == p2.Timestamp
 	}
@@ -134,14 +91,6 @@ func TestParser(t *testing.T) {
 			eq:     hbeq,
 		},
 	}
-
-	t.Run("uint8 cases", func(t *testing.T) {
-		runParsingCases(t, uint8Cases)
-	})
-
-	t.Run("string cases", func(t *testing.T) {
-		runParsingCases(t, stringCases)
-	})
 
 	t.Run("plate cases", func(t *testing.T) {
 		runParsingCases(t, plateCases)

@@ -61,12 +61,12 @@ func ParseMessages(r io.Reader) chan any {
 func ParseError(b []byte) ParseResult[*SpeedError] {
 	var ret ParseResult[*SpeedError]
 
-	typeHex := ParseUint8(b)
+	typeHex := parseUint8(b)
 	if !typeHex.Ok || typeHex.Value != 0x10 {
 		return ret
 	}
 
-	msg := ParseString(typeHex.Next)
+	msg := parseString(typeHex.Next)
 	if !msg.Ok {
 		return ret
 	}
@@ -82,17 +82,17 @@ func ParseError(b []byte) ParseResult[*SpeedError] {
 func ParsePlate(b []byte) ParseResult[*Plate] {
 	var ret ParseResult[*Plate]
 
-	typeHex := ParseUint8(b)
+	typeHex := parseUint8(b)
 	if !typeHex.Ok || typeHex.Value != 0x20 {
 		return ret
 	}
 
-	plate := ParseString(typeHex.Next)
+	plate := parseString(typeHex.Next)
 	if !plate.Ok {
 		return ret
 	}
 
-	timestamp := ParseUint32(plate.Next)
+	timestamp := parseUint32(plate.Next)
 	if !timestamp.Ok {
 		return ret
 	}
@@ -109,7 +109,7 @@ func ParsePlate(b []byte) ParseResult[*Plate] {
 func ParseTicket(b []byte) ParseResult[*Ticket] {
 	var ret ParseResult[*Ticket]
 
-	typeHex := ParseUint8(b)
+	typeHex := parseUint8(b)
 	if !typeHex.Ok || typeHex.Value != 0x81 {
 		return ret
 	}
@@ -120,12 +120,12 @@ func ParseTicket(b []byte) ParseResult[*Ticket] {
 func ParseWantHeartbeat(b []byte) ParseResult[*WantHeartbeat] {
 	var ret ParseResult[*WantHeartbeat]
 
-	typeHex := ParseUint8(b)
+	typeHex := parseUint8(b)
 	if typeHex.Ok && typeHex.Value != 0x40 {
 		return ret
 	}
 
-	out := ParseUint32(typeHex.Next)
+	out := parseUint32(typeHex.Next)
 	if !out.Ok {
 		return ret
 	}
@@ -142,7 +142,7 @@ func ParseWantHeartbeat(b []byte) ParseResult[*WantHeartbeat] {
 func ParseHeartbeat(b []byte) ParseResult[Heartbeat] {
 	var ret ParseResult[Heartbeat]
 
-	typeHex := ParseUint8(b)
+	typeHex := parseUint8(b)
 	if !typeHex.Ok || typeHex.Value != 0x41 {
 		return ret
 	}
@@ -156,20 +156,20 @@ func ParseHeartbeat(b []byte) ParseResult[Heartbeat] {
 func ParseIAmACamera(b []byte) ParseResult[*IAmACamera] {
 	var ret ParseResult[*IAmACamera]
 
-	typeHex := ParseUint8(b)
+	typeHex := parseUint8(b)
 	if !typeHex.Ok || typeHex.Value != 0x80 {
 		return ret
 	}
 
-	road := ParseUint16(typeHex.Next)
+	road := parseUint16(typeHex.Next)
 	if !road.Ok {
 		return ret
 	}
-	mile := ParseUint16(road.Next)
+	mile := parseUint16(road.Next)
 	if !mile.Ok {
 		return ret
 	}
-	limit := ParseUint16(mile.Next)
+	limit := parseUint16(mile.Next)
 	if !limit.Ok {
 		return ret
 	}
@@ -187,12 +187,12 @@ func ParseIAmACamera(b []byte) ParseResult[*IAmACamera] {
 func ParseIAmADispatcher(b []byte) ParseResult[*IAmADispatcher] {
 	var ret ParseResult[*IAmADispatcher]
 
-	typeHex := ParseUint8(b)
+	typeHex := parseUint8(b)
 	if !typeHex.Ok || typeHex.Value != 0x81 {
 		return ret
 	}
 
-	numroads := ParseUint8(typeHex.Next)
+	numroads := parseUint8(typeHex.Next)
 	if !numroads.Ok {
 		return ret
 	}
@@ -202,7 +202,7 @@ func ParseIAmADispatcher(b []byte) ParseResult[*IAmADispatcher] {
 	roads := make([]uint16, 0)
 
 	for i = 0; i < numroads.Value; i++ {
-		road := ParseUint16(next)
+		road := parseUint16(next)
 		if !road.Ok {
 			return ret
 		}
@@ -221,7 +221,7 @@ func ParseIAmADispatcher(b []byte) ParseResult[*IAmADispatcher] {
 
 // Consumes tokens from b to produce a string
 // Returns number of bytes consumed and the final string
-func ParseString(b []byte) ParseResult[string] {
+func parseString(b []byte) ParseResult[string] {
 	var ret ParseResult[string]
 
 	if len(b) < 1 {
@@ -243,7 +243,7 @@ func ParseString(b []byte) ParseResult[string] {
 }
 
 // parse uint8
-func ParseUint8(b []byte) ParseResult[uint8] {
+func parseUint8(b []byte) ParseResult[uint8] {
 	var ret ParseResult[uint8]
 	if len(b) < 1 {
 		return ret
@@ -255,7 +255,7 @@ func ParseUint8(b []byte) ParseResult[uint8] {
 }
 
 // parse uint16
-func ParseUint16(b []byte) ParseResult[uint16] {
+func parseUint16(b []byte) ParseResult[uint16] {
 	var ret ParseResult[uint16]
 	if len(b) < 2 {
 		return ret
@@ -267,7 +267,7 @@ func ParseUint16(b []byte) ParseResult[uint16] {
 }
 
 // parse uint32
-func ParseUint32(b []byte) ParseResult[uint32] {
+func parseUint32(b []byte) ParseResult[uint32] {
 	var ret ParseResult[uint32]
 	if len(b) < 4 {
 		return ret
