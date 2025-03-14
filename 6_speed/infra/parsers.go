@@ -58,6 +58,27 @@ func ParseMessages(r io.Reader) chan any {
 	return ch
 }
 
+func ParseError(b []byte) ParseResult[*SpeedError] {
+	var ret ParseResult[*SpeedError]
+
+	typeHex := ParseUint8(b)
+	if !typeHex.Ok || typeHex.Value != 0x10 {
+		return ret
+	}
+
+	msg := ParseString(typeHex.Next)
+	if !msg.Ok {
+		return ret
+	}
+
+	ret.Ok = true
+	ret.Next = typeHex.Next
+	ret.Value = &SpeedError{
+		Msg: msg.Value,
+	}
+	return ret
+}
+
 func ParsePlate(b []byte) ParseResult[*Plate] {
 	var ret ParseResult[*Plate]
 
@@ -82,6 +103,53 @@ func ParsePlate(b []byte) ParseResult[*Plate] {
 		Timestamp: timestamp.Value,
 	}
 	ret.Next = timestamp.Next
+	return ret
+}
+
+func ParseTicket(b []byte) ParseResult[*Ticket] {
+	var ret ParseResult[*Ticket]
+
+	typeHex := ParseUint8(b)
+	if !typeHex.Ok || typeHex.Value != 0x81 {
+		return ret
+	}
+
+	return ret
+}
+
+func ParseWantHeartbeat(b []byte) ParseResult[*WantHeartbeat] {
+	var ret ParseResult[*WantHeartbeat]
+
+	typeHex := ParseUint8(b)
+	if typeHex.Ok && typeHex.Value != 0x40 {
+		return ret
+	}
+
+	out := ParseUint32(typeHex.Next)
+	if !out.Ok {
+		return ret
+	}
+
+	ret.Ok = true
+	ret.Value = &WantHeartbeat{
+		Interval: out.Value,
+	}
+	ret.Next = out.Next
+
+	return ret
+}
+
+func ParseHeartbeat(b []byte) ParseResult[Heartbeat] {
+	var ret ParseResult[Heartbeat]
+
+	typeHex := ParseUint8(b)
+	if !typeHex.Ok || typeHex.Value != 0x41 {
+		return ret
+	}
+
+	ret.Ok = true
+	ret.Next = typeHex.Next
+
 	return ret
 }
 
@@ -147,28 +215,6 @@ func ParseIAmADispatcher(b []byte) ParseResult[*IAmADispatcher] {
 		Roads: roads,
 	}
 	ret.Next = next
-
-	return ret
-}
-
-func ParseWantHeartbeat(b []byte) ParseResult[*WantHeartbeat] {
-	var ret ParseResult[*WantHeartbeat]
-
-	typeHex := ParseUint8(b)
-	if typeHex.Ok && typeHex.Value != 0x40 {
-		return ret
-	}
-
-	out := ParseUint32(typeHex.Next)
-	if !out.Ok {
-		return ret
-	}
-
-	ret.Ok = true
-	ret.Value = &WantHeartbeat{
-		Interval: out.Value,
-	}
-	ret.Next = out.Next
 
 	return ret
 }
