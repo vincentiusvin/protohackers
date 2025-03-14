@@ -20,11 +20,11 @@ func EncodeMessages(ctx context.Context, w io.Writer) chan any {
 
 			switch v := msg.(type) {
 			case *Ticket:
-				EncodeTicket(v)
+				w.Write(EncodeTicket(v))
 			case Heartbeat:
-				EncodeHeartbeat()
+				w.Write(EncodeHeartbeat())
 			case *SpeedError:
-				EncodeError(v)
+				w.Write(EncodeError(v))
 			}
 		}
 	}()

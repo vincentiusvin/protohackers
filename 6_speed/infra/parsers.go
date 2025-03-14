@@ -2,6 +2,7 @@ package infra
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"io"
 )
@@ -13,7 +14,7 @@ type ParseResult[T any] struct {
 	Ok    bool
 }
 
-func ParseMessages(r io.Reader) chan any {
+func ParseMessages(r io.Reader, cancel context.CancelFunc) chan any {
 	buff := new(bytes.Buffer)
 	buff.ReadFrom(r)
 
@@ -21,11 +22,13 @@ func ParseMessages(r io.Reader) chan any {
 
 	go func() {
 		defer close(ch)
+		defer cancel()
+
 		var curr []byte
 		for {
 			b, err := buff.ReadByte()
 			if err != nil {
-				break
+				return
 			}
 			curr = append(curr, b)
 

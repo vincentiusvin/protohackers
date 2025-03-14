@@ -39,9 +39,11 @@ const (
 func handleConnection(c net.Conn) {
 	defer c.Close()
 
-	in := infra.ParseMessages(c)
-	out := infra.EncodeMessages(nil, c)
-	handleConnectionLogic(nil, in, out)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	in := infra.ParseMessages(c, cancel) // this guy cancels the other two
+	out := infra.EncodeMessages(ctx, c)
+	handleConnectionLogic(ctx, in, out)
 }
 
 // With the connection abstracted away
@@ -50,7 +52,7 @@ func handleConnectionLogic(ctx context.Context, incoming chan any, outgoing chan
 	spawnedHb := false
 
 	sendError := func(msg string) {
-		outgoing <- infra.SpeedError{
+		outgoing <- &infra.SpeedError{
 			Msg: msg,
 		}
 	}
