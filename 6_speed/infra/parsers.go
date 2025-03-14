@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"io"
-	"log"
 )
 
 type ParseFunc[T any] func(b []byte) ParseResult[T]
@@ -27,12 +26,9 @@ func ParseMessages(r io.Reader, cancel context.CancelFunc) chan any {
 			buff := make([]byte, 1024)
 			n, err := r.Read(buff)
 			if err != nil {
-				log.Println(err)
 				return
 			}
 			curr = append(curr, buff[:n]...)
-
-			log.Println(n, curr)
 
 			spe_err := ParseError(curr)
 			if spe_err.Ok {

@@ -87,6 +87,8 @@ func (rd *Road) processTicket() {
 		randDisp := rand.Int() % len(rd.dispatchers)
 		rd.dispatchers[randDisp] <- c
 	}
+
+	rd.tickets = make([]*infra.Ticket, 0)
 }
 
 func (rd *Road) addTicket(t *infra.Ticket) {
