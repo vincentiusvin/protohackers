@@ -47,7 +47,7 @@ func handleConnection(c net.Conn) {
 }
 
 // With the connection abstracted away
-func handleConnectionLogic(ctx context.Context, incoming chan any, outgoing chan any) {
+func handleConnectionLogic(ctx context.Context, incoming chan any, outgoing chan infra.Encode) {
 	clientType := None
 	spawnedHb := false
 
@@ -111,30 +111,4 @@ func handleConnectionLogic(ctx context.Context, incoming chan any, outgoing chan
 			log.Println("new dispatcher", v)
 		}
 	}
-}
-
-type Global struct {
-	cameras     []*infra.IAmACamera
-	dispatchers []*infra.IAmADispatcher
-	plates      []*infra.Plate
-}
-
-func MakeGlobal() *Global {
-	return &Global{
-		cameras:     make([]*infra.IAmACamera, 0),
-		dispatchers: make([]*infra.IAmADispatcher, 0),
-		plates:      make([]*infra.Plate, 0),
-	}
-}
-
-func (g *Global) AddCamera(cam *infra.IAmACamera) {
-	g.cameras = append(g.cameras, cam)
-}
-
-func (g *Global) AddDispatcher(dis *infra.IAmADispatcher) {
-	g.dispatchers = append(g.dispatchers, dis)
-}
-
-func (g *Global) AddPlates(dis *infra.IAmADispatcher) {
-
 }

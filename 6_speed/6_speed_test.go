@@ -13,7 +13,7 @@ func TestLogic(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	out := make(chan any)
+	out := make(chan infra.Encode)
 
 	go handleConnectionLogic(ctx, in, out)
 

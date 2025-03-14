@@ -17,7 +17,7 @@ func TestEncode(t *testing.T) {
 		Speed:      10000,
 	}
 
-	out := infra.EncodeTicket(ticket)
+	out := ticket.Encode()
 
 	expected := []byte{
 		0x21,

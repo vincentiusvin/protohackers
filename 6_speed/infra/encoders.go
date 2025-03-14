@@ -6,36 +6,33 @@ import (
 	"io"
 )
 
-func EncodeMessages(ctx context.Context, w io.Writer) chan any {
-	ch := make(chan any)
+type Encode interface {
+	Encode() []byte
+}
+
+func EncodeMessages(ctx context.Context, w io.Writer) chan Encode {
+	ch := make(chan Encode)
 
 	go func() {
 		defer close(ch)
-		for msg := range ch {
+		for {
 			select {
 			case <-ctx.Done():
 				return
-			default:
+			case v := <-ch:
+				w.Write(v.Encode())
 			}
 
-			switch v := msg.(type) {
-			case *Ticket:
-				w.Write(EncodeTicket(v))
-			case Heartbeat:
-				w.Write(EncodeHeartbeat())
-			case *SpeedError:
-				w.Write(EncodeError(v))
-			}
 		}
 	}()
 
 	return ch
 }
 
-func EncodeTicket(t *Ticket) []byte {
+func (t *Ticket) Encode() []byte {
 	ret := append(
 		[]byte{0x21},
-		EncodeString(t.Plate)...,
+		encodeString(t.Plate)...,
 	)
 	ret = binary.BigEndian.AppendUint16(ret, t.Road)
 	ret = binary.BigEndian.AppendUint16(ret, t.Mile1)
@@ -46,15 +43,15 @@ func EncodeTicket(t *Ticket) []byte {
 	return ret
 }
 
-func EncodeHeartbeat() []byte {
+func (Heartbeat) Encode() []byte {
 	return []byte{0x41}
 }
 
-func EncodeError(err *SpeedError) []byte {
-	return append([]byte{0x10}, EncodeString(err.Msg)...)
+func (err *SpeedError) Encode() []byte {
+	return append([]byte{0x10}, encodeString(err.Msg)...)
 }
 
-func EncodeString(s string) []byte {
+func encodeString(s string) []byte {
 	l := byte(uint8(len(s)))
 	return append([]byte{l}, []byte(s)...)
 }
