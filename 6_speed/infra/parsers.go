@@ -1,10 +1,10 @@
 package infra
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
 	"io"
+	"log"
 )
 
 type ParseFunc[T any] func(b []byte) ParseResult[T]
@@ -15,9 +15,6 @@ type ParseResult[T any] struct {
 }
 
 func ParseMessages(r io.Reader, cancel context.CancelFunc) chan any {
-	buff := new(bytes.Buffer)
-	buff.ReadFrom(r)
-
 	ch := make(chan any)
 
 	go func() {
@@ -25,12 +22,17 @@ func ParseMessages(r io.Reader, cancel context.CancelFunc) chan any {
 		defer cancel()
 
 		var curr []byte
+
 		for {
-			b, err := buff.ReadByte()
+			buff := make([]byte, 1024)
+			n, err := r.Read(buff)
 			if err != nil {
+				log.Println(err)
 				return
 			}
-			curr = append(curr, b)
+			curr = append(curr, buff[:n]...)
+
+			log.Println(n, curr)
 
 			spe_err := ParseError(curr)
 			if spe_err.Ok {
@@ -53,13 +55,13 @@ func ParseMessages(r io.Reader, cancel context.CancelFunc) chan any {
 			whb := ParseWantHeartbeat(curr)
 			if whb.Ok {
 				curr = whb.Next
-				ch <- whb
+				ch <- whb.Value
 			}
 
 			hb := ParseHeartbeat(curr)
 			if hb.Ok {
 				curr = hb.Next
-				ch <- hb
+				ch <- hb.Value
 			}
 
 			cam := ParseIAmACamera(curr)

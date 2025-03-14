@@ -42,6 +42,7 @@ const (
 func handleConnection(c net.Conn, ctrl *ticketing.Controller) {
 	defer c.Close()
 
+	log.Println(c.RemoteAddr(), "connected")
 	ctx, cancel := context.WithCancel(context.Background())
 
 	in := infra.ParseMessages(c, cancel) // this guy cancels the other two
@@ -86,6 +87,11 @@ func handleConnectionLogic(ctx context.Context, incoming chan any, outgoing chan
 				sendError("already sending heartbeat")
 				continue
 			}
+
+			if v.Interval == 0 {
+				continue
+			}
+
 			go func() {
 				log.Println("starting heartbeat every", v.Interval, "ds")
 				for {
