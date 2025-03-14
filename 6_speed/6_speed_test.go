@@ -6,26 +6,24 @@ import (
 )
 
 func TestLogic(t *testing.T) {
-	c := make(chan any)
-	send := func(b []byte) error {
-		return nil
-	}
-	go handleConnectionLogic(c, send)
+	in := make(chan any)
+	out := make(chan any)
+	go handleConnectionLogic(nil, in, out)
 
-	c <- &infra.IAmACamera{
+	in <- &infra.IAmACamera{
 		Road:  123,
 		Mile:  8,
 		Limit: 60,
 	}
 
-	c <- &infra.IAmADispatcher{
+	in <- &infra.IAmADispatcher{
 		Roads: []uint16{123},
 	}
 
-	c <- &infra.Plate{
+	in <- &infra.Plate{
 		Plate:     "UN1X",
 		Timestamp: 0,
 	}
 
-	close(c)
+	close(in)
 }

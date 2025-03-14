@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
 	"protohackers/6_speed/infra"
@@ -38,24 +39,27 @@ const (
 func handleConnection(c net.Conn) {
 	defer c.Close()
 
-	ch := infra.ParseMessages(c)
-	send := func(b []byte) error {
-		_, err := c.Write(b)
-		return err
-	}
-	handleConnectionLogic(ch, send)
+	in := infra.ParseMessages(c)
+	out := infra.EncodeMessages(nil, c)
+	handleConnectionLogic(nil, in, out)
 }
 
 // With the connection abstracted away
-func handleConnectionLogic(c chan any, send func([]byte) error) {
+func handleConnectionLogic(ctx context.Context, incoming chan any, outgoing chan any) {
 	clientType := None
 	spawnedHb := false
 
-	for msg := range c {
+	sendError := func(msg string) {
+		outgoing <- infra.SpeedError{
+			Msg: msg,
+		}
+	}
+
+	for msg := range incoming {
 		switch v := msg.(type) {
 		case *infra.IAmACamera:
 			if clientType != None {
-				send(infra.EncodeError("already another type"))
+				sendError("already another type")
 				continue
 			}
 
@@ -63,7 +67,7 @@ func handleConnectionLogic(c chan any, send func([]byte) error) {
 			log.Println("new camera", v)
 		case *infra.IAmADispatcher:
 			if clientType != None {
-				send(infra.EncodeError("already another type"))
+				sendError("already another type")
 				continue
 			}
 
@@ -71,25 +75,27 @@ func handleConnectionLogic(c chan any, send func([]byte) error) {
 			log.Println("new dispatcher", v)
 		case *infra.WantHeartbeat:
 			if spawnedHb {
-				send(infra.EncodeError("already sending heartbeat"))
+				sendError("already sending heartbeat")
 				continue
 			}
+
 			go func() {
 				log.Println("starting heartbeat every", v.Interval, "ds")
 				for {
-					err := send(infra.EncodeHeartbeat())
-					if err != nil {
-						break
+					select {
+					case <-ctx.Done():
+						log.Println("stopped heartbeat every", v.Interval, "ds")
+						return
+					case outgoing <- infra.Heartbeat{}:
+						deciseconds := time.Second / 10
+						time.Sleep(time.Duration(v.Interval) * deciseconds)
 					}
-					deciseconds := time.Second / 10
-					time.Sleep(time.Duration(v.Interval) * deciseconds)
 				}
-				log.Println("stopped heartbeat every", v.Interval, "ds")
 			}()
 			spawnedHb = true
 		case *infra.Plate:
 			if clientType != Camera {
-				send(infra.EncodeError("you are not a camera"))
+				sendError("you are not a camera")
 				continue
 			}
 		}

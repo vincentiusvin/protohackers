@@ -1,6 +1,36 @@
 package infra
 
-import "encoding/binary"
+import (
+	"context"
+	"encoding/binary"
+	"io"
+)
+
+func EncodeMessages(ctx context.Context, w io.Writer) chan any {
+	ch := make(chan any)
+
+	go func() {
+		defer close(ch)
+		for msg := range ch {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			switch v := msg.(type) {
+			case *Ticket:
+				EncodeTicket(v)
+			case Heartbeat:
+				EncodeHeartbeat()
+			case *SpeedError:
+				EncodeError(v)
+			}
+		}
+	}()
+
+	return ch
+}
 
 func EncodeTicket(t *Ticket) []byte {
 	ret := append(
@@ -20,8 +50,8 @@ func EncodeHeartbeat() []byte {
 	return []byte{0x41}
 }
 
-func EncodeError(err string) []byte {
-	return append([]byte{0x10}, EncodeString(err)...)
+func EncodeError(err *SpeedError) []byte {
+	return append([]byte{0x10}, EncodeString(err.Msg)...)
 }
 
 func EncodeString(s string) []byte {
