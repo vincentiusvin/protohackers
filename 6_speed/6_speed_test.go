@@ -16,12 +16,15 @@ type ParsingCases[T any] struct {
 
 func runParsingCases[T any](t *testing.T, cases []ParsingCases[T]) {
 	for _, c := range cases {
-		out, new_in := c.fn(c.in)
-		if !c.eq(out, c.expected) {
+		out := c.fn(c.in)
+		if !out.Ok {
+			t.Fatalf("parsing failed")
+		}
+		if !c.eq(out.Value, c.expected) {
 			t.Fatalf("wrong parsing output. expected %v got %v", c.expected, out)
 		}
-		if len(new_in) != c.newLen {
-			t.Fatalf("wrong new input length. expected %v got %v", c.newLen, len(new_in))
+		if len(out.Next) != c.newLen {
+			t.Fatalf("wrong new input length. expected %v got %v", c.newLen, len(out.Next))
 		}
 	}
 }
@@ -76,7 +79,7 @@ func TestParser(t *testing.T) {
 
 	plateCases := []ParsingCases[*Plate]{
 		{
-			in: []byte{0x04, 0x55, 0x4e, 0x31, 0x58, 0x00, 0x00, 0x03, 0xe8},
+			in: []byte{0x20, 0x04, 0x55, 0x4e, 0x31, 0x58, 0x00, 0x00, 0x03, 0xe8},
 			expected: &Plate{
 				Plate:     "UN1X",
 				Timestamp: 1000,
@@ -92,7 +95,7 @@ func TestParser(t *testing.T) {
 	}
 	cameraCases := []ParsingCases[*IAmACamera]{
 		{
-			in: []byte{0x00, 0x42, 0x00, 0x64, 0x00, 0x3c},
+			in: []byte{0x80, 0x00, 0x42, 0x00, 0x64, 0x00, 0x3c},
 			expected: &IAmACamera{
 				Road:  66,
 				Mile:  100,
@@ -109,7 +112,7 @@ func TestParser(t *testing.T) {
 	}
 	dispatchCases := []ParsingCases[*IAmADispatcher]{
 		{
-			in: []byte{0x03, 0x00, 0x42, 0x01, 0x70, 0x13, 0x88},
+			in: []byte{0x81, 0x03, 0x00, 0x42, 0x01, 0x70, 0x13, 0x88},
 			expected: &IAmADispatcher{
 				Roads: []uint16{66, 368, 5000},
 			},
@@ -122,7 +125,7 @@ func TestParser(t *testing.T) {
 	hbeq := func(wh1, wh2 *WantHeartbeat) bool { return wh1.Interval == wh2.Interval }
 	hbcases := []ParsingCases[*WantHeartbeat]{
 		{
-			in: []byte{0x00, 0x00, 0x00, 0x10},
+			in: []byte{0x40, 0x00, 0x00, 0x00, 0x10},
 			expected: &WantHeartbeat{
 				Interval: 16,
 			},

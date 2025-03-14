@@ -49,95 +49,185 @@ type WantHeartbeat struct {
 	Interval uint32
 }
 
-type ParseFunc[T any] func(b []byte) (T, []byte)
+type ParseFunc[T any] func(b []byte) ParseResult[T]
+type ParseResult[T any] struct {
+	Value T
+	Next  []byte
+	Ok    bool
+}
 
-func parseInfer(b []byte) (any, []byte) {
-	if len(b) == 0 {
-		return nil, b
+func parsePlate(b []byte) ParseResult[*Plate] {
+	var ret ParseResult[*Plate]
+
+	typeHex := parseUint8(b)
+	if !typeHex.Ok || typeHex.Value != 0x20 {
+		return ret
 	}
-	typeHex, b := parseUint8(b)
-	switch typeHex {
-	case 0x20:
-		return parsePlate(b)
-	case 0x40:
-		return parseWantHeartbeat(b)
-	case 0x80:
-		return parseIAmACamera(b)
-	case 0x81:
-		return parseIAmADispatcher(b)
+
+	plate := parseString(typeHex.Next)
+	if !plate.Ok {
+		return ret
 	}
-	return nil, b
+
+	timestamp := parseUint32(plate.Next)
+	if !timestamp.Ok {
+		return ret
+	}
+
+	ret.Ok = true
+	ret.Value = &Plate{
+		Plate:     plate.Value,
+		Timestamp: timestamp.Value,
+	}
+	ret.Next = timestamp.Next
+	return ret
 }
 
-func parsePlate(b []byte) (*Plate, []byte) {
-	plate, b := parseString(b)
-	timestamp, b := parseUint32(b)
+func parseIAmACamera(b []byte) ParseResult[*IAmACamera] {
+	var ret ParseResult[*IAmACamera]
 
-	return &Plate{
-		Plate:     plate,
-		Timestamp: timestamp,
-	}, b
+	typeHex := parseUint8(b)
+	if !typeHex.Ok || typeHex.Value != 0x80 {
+		return ret
+	}
+
+	road := parseUint16(typeHex.Next)
+	if !road.Ok {
+		return ret
+	}
+	mile := parseUint16(road.Next)
+	if !mile.Ok {
+		return ret
+	}
+	limit := parseUint16(mile.Next)
+	if !limit.Ok {
+		return ret
+	}
+
+	ret.Ok = true
+	ret.Value = &IAmACamera{
+		Road:  road.Value,
+		Mile:  mile.Value,
+		Limit: limit.Value,
+	}
+	ret.Next = limit.Next
+	return ret
 }
 
-func parseIAmACamera(b []byte) (*IAmACamera, []byte) {
-	road, b := parseUint16(b)
-	mile, b := parseUint16(b)
-	limit, b := parseUint16(b)
+func parseIAmADispatcher(b []byte) ParseResult[*IAmADispatcher] {
+	var ret ParseResult[*IAmADispatcher]
 
-	return &IAmACamera{
-		Road:  road,
-		Mile:  mile,
-		Limit: limit,
-	}, b
-}
+	typeHex := parseUint8(b)
+	if !typeHex.Ok || typeHex.Value != 0x81 {
+		return ret
+	}
 
-func parseIAmADispatcher(b []byte) (*IAmADispatcher, []byte) {
-	numroads, b := parseUint8(b)
+	numroads := parseUint8(typeHex.Next)
+	if !numroads.Ok {
+		return ret
+	}
+
 	var i uint8
+	next := numroads.Next
 	roads := make([]uint16, 0)
 
-	for i = 0; i < numroads; i++ {
-		road, new_b := parseUint16(b)
-		b = new_b
-		roads = append(roads, road)
-
+	for i = 0; i < numroads.Value; i++ {
+		road := parseUint16(next)
+		if !road.Ok {
+			return ret
+		}
+		next = road.Next
+		roads = append(roads, road.Value)
 	}
 
-	return &IAmADispatcher{
+	ret.Ok = true
+	ret.Value = &IAmADispatcher{
 		Roads: roads,
-	}, b
+	}
+	ret.Next = next
+
+	return ret
 }
 
-func parseWantHeartbeat(b []byte) (*WantHeartbeat, []byte) {
-	hb, b := parseUint32(b)
+func parseWantHeartbeat(b []byte) ParseResult[*WantHeartbeat] {
+	var ret ParseResult[*WantHeartbeat]
 
-	return &WantHeartbeat{
-		Interval: hb,
-	}, b
+	typeHex := parseUint8(b)
+	if typeHex.Ok && typeHex.Value != 0x40 {
+		return ret
+	}
+
+	out := parseUint32(typeHex.Next)
+	if !out.Ok {
+		return ret
+	}
+
+	ret.Ok = true
+	ret.Value = &WantHeartbeat{
+		Interval: out.Value,
+	}
+	ret.Next = out.Next
+
+	return ret
 }
 
 // Consumes tokens from b to produce a string
 // Returns number of bytes consumed and the final string
-func parseString(b []byte) (string, []byte) {
-	len := int(b[0])
-	str := string(b[1 : len+1])
+func parseString(b []byte) ParseResult[string] {
+	var ret ParseResult[string]
 
-	return str, b[len+1:]
+	if len(b) < 1 {
+		return ret
+	}
+
+	strlen := int(b[0])
+	if len(b) < strlen+1 {
+		return ret
+	}
+
+	str := string(b[1 : strlen+1])
+
+	ret.Ok = true
+	ret.Value = str
+	ret.Next = b[strlen+1:]
+
+	return ret
+}
+
+// parse uint8
+func parseUint8(b []byte) ParseResult[uint8] {
+	var ret ParseResult[uint8]
+	if len(b) < 1 {
+		return ret
+	}
+	ret.Ok = true
+	ret.Value = uint8(b[0])
+	ret.Next = b[1:]
+	return ret
 }
 
 // parse uint16
-func parseUint8(b []byte) (uint8, []byte) {
-	return uint8(b[0]), b[1:]
-}
-
-// parse uint16
-func parseUint16(b []byte) (uint16, []byte) {
-	return binary.BigEndian.Uint16(b), b[2:]
+func parseUint16(b []byte) ParseResult[uint16] {
+	var ret ParseResult[uint16]
+	if len(b) < 2 {
+		return ret
+	}
+	ret.Ok = true
+	ret.Value = binary.BigEndian.Uint16(b)
+	ret.Next = b[2:]
+	return ret
 }
 
 // parse uint32
-func parseUint32(b []byte) (uint32, []byte) {
-	return binary.BigEndian.Uint32(b), b[4:]
+func parseUint32(b []byte) ParseResult[uint32] {
+	var ret ParseResult[uint32]
+	if len(b) < 4 {
+		return ret
+	}
+	ret.Ok = true
+	ret.Value = binary.BigEndian.Uint32(b)
+	ret.Next = b[4:]
+	return ret
 }
 
 type Ticket struct {
