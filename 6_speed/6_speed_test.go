@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"protohackers/6_speed/infra"
+	"protohackers/6_speed/ticketing"
 	"testing"
 )
 
@@ -15,7 +16,9 @@ func TestLogic(t *testing.T) {
 
 	out := make(chan infra.Encode)
 
-	go handleConnectionLogic(ctx, in, out)
+	ctrl := ticketing.MakeController()
+
+	go handleConnectionLogic(ctx, in, out, ctrl)
 
 	in <- &infra.IAmACamera{
 		Road:  123,
@@ -37,5 +40,4 @@ func TestLogic(t *testing.T) {
 		Plate:     "UN1X",
 		Timestamp: 0,
 	}
-
 }
