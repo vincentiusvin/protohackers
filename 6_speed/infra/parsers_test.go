@@ -76,6 +76,45 @@ func TestParser(t *testing.T) {
 		runParsingCases(t, plateCases)
 	})
 
+	t.Run("ticket cases", func(t *testing.T) {
+		tickeq := func(p1, p2 *infra.Ticket) bool {
+			return p1.Mile1 == p2.Mile1 &&
+				p1.Mile2 == p2.Mile2 &&
+				p1.Plate == p2.Plate &&
+				p1.Road == p2.Road &&
+				p1.Speed == p2.Speed &&
+				p1.Timestamp1 == p2.Timestamp1 &&
+				p1.Timestamp2 == p2.Timestamp2
+		}
+		tickCases := []ParsingCases[*infra.Ticket]{
+			{
+				in: []byte{
+					0x21,
+					0x04, 0x55, 0x4e, 0x31, 0x58,
+					0x00, 0x42,
+					0x00, 0x64,
+					0x00, 0x01, 0xe2, 0x40,
+					0x00, 0x6e,
+					0x00, 0x01, 0xe3, 0xa8,
+					0x27, 0x10,
+				},
+				expected: &infra.Ticket{
+					Plate:      "UN1X",
+					Road:       66,
+					Mile1:      100,
+					Timestamp1: 123456,
+					Mile2:      110,
+					Timestamp2: 123816,
+					Speed:      10000,
+				},
+				newLen: 0,
+				fn:     infra.ParseTicket,
+				eq:     tickeq,
+			},
+		}
+		runParsingCases(t, tickCases)
+	})
+
 	t.Run("hb cases", func(t *testing.T) {
 		hbeq := func(wh1, wh2 infra.Heartbeat) bool { return true }
 		hbcases := []ParsingCases[infra.Heartbeat]{

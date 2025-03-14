@@ -123,10 +123,56 @@ func ParseTicket(b []byte) ParseResult[*Ticket] {
 	var ret ParseResult[*Ticket]
 
 	typeHex := parseUint8(b)
-	if !typeHex.Ok || typeHex.Value != 0x81 {
+	if !typeHex.Ok || typeHex.Value != 0x21 {
 		return ret
 	}
 
+	plate := parseString(typeHex.Next)
+	if !plate.Ok {
+		return ret
+	}
+
+	road := parseUint16(plate.Next)
+	if !road.Ok {
+		return ret
+	}
+
+	mile1 := parseUint16(road.Next)
+	if !mile1.Ok {
+		return ret
+	}
+
+	timestamp1 := parseUint32(mile1.Next)
+	if !timestamp1.Ok {
+		return ret
+	}
+
+	mile2 := parseUint16(timestamp1.Next)
+	if !mile2.Ok {
+		return ret
+	}
+
+	timestamp2 := parseUint32(mile2.Next)
+	if !timestamp2.Ok {
+		return ret
+	}
+
+	speed := parseUint16(timestamp2.Next)
+	if !speed.Ok {
+		return ret
+	}
+
+	ret.Ok = true
+	ret.Next = speed.Next
+	ret.Value = &Ticket{
+		Plate:      plate.Value,
+		Road:       road.Value,
+		Mile1:      mile1.Value,
+		Timestamp1: timestamp1.Value,
+		Mile2:      mile2.Value,
+		Timestamp2: timestamp2.Value,
+		Speed:      speed.Value,
+	}
 	return ret
 }
 
