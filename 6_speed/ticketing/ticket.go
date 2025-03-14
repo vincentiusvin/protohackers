@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/rand/v2"
 	"protohackers/6_speed/infra"
 	"slices"
 	"sync"
@@ -20,6 +21,7 @@ type Plate struct {
 type Road struct {
 	num         uint16
 	dispatchers []chan *infra.Ticket
+	tickets     []*infra.Ticket
 	plates      map[string][]*Plate // map of plate number -> plate
 	limit       uint16
 }
@@ -63,8 +65,10 @@ func (g *Controller) AddDispatcher(roads []uint16, ch chan *infra.Ticket) {
 	for _, roadNum := range roads {
 		rd := g.getRoad(roadNum)
 		rd.dispatchers = append(rd.dispatchers, ch)
+		rd.processTicket()
 		log.Printf("Dispatcher registered on road %v", roadNum)
 	}
+
 }
 
 func (rd *Road) getPlateRecords(plate string) []*Plate {
@@ -72,6 +76,22 @@ func (rd *Road) getPlateRecords(plate string) []*Plate {
 		rd.plates[plate] = make([]*Plate, 0)
 	}
 	return rd.plates[plate]
+}
+
+func (rd *Road) processTicket() {
+	if len(rd.dispatchers) == 0 {
+		return
+	}
+
+	for _, c := range rd.tickets {
+		randDisp := rand.Int() % len(rd.dispatchers)
+		rd.dispatchers[randDisp] <- c
+	}
+}
+
+func (rd *Road) addTicket(t *infra.Ticket) {
+	rd.tickets = append(rd.tickets, t)
+	rd.processTicket()
 }
 
 func (pl *Plate) String() string {
@@ -108,15 +128,16 @@ func (g *Controller) AddPlates(plate *Plate) {
 		limit := float64(rd.limit)
 
 		if mph > limit {
-			rd.dispatchers[0] <- &infra.Ticket{
-				Plate:      pl.Plate,
-				Road:       rd.num,
-				Mile1:      lastPl.Mile,
-				Timestamp1: lastPl.Timestamp,
-				Mile2:      pl.Mile,
-				Timestamp2: pl.Timestamp,
-				Speed:      uint16(100 * mph),
-			}
+			rd.addTicket(
+				&infra.Ticket{
+					Plate:      pl.Plate,
+					Road:       rd.num,
+					Mile1:      lastPl.Mile,
+					Timestamp1: lastPl.Timestamp,
+					Mile2:      pl.Mile,
+					Timestamp2: pl.Timestamp,
+					Speed:      uint16(100 * mph),
+				})
 			pl.Ticketed = true
 			log.Printf("Ticketed %v. Speed: %v > %v\n", plate.Plate, mph, limit)
 		}

@@ -22,9 +22,6 @@ func TestTicketing(t *testing.T) {
 		Speed:      8000,
 	}
 
-	outCh := make(chan *infra.Ticket, 1)
-	c.AddDispatcher([]uint16{roadNum}, outCh)
-
 	c.UpdateLimit(roadNum, 60)
 
 	c.AddPlates(&ticketing.Plate{
@@ -41,6 +38,10 @@ func TestTicketing(t *testing.T) {
 		Timestamp: 45,
 	})
 
+	// Need to buffer ticket first if no dispatcher.
+	// So we register it late.
+	outCh := make(chan *infra.Ticket, 1)
+	c.AddDispatcher([]uint16{roadNum}, outCh)
 	out := <-outCh
 
 	if !reflect.DeepEqual(out, expected) {
