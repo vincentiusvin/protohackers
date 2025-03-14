@@ -186,3 +186,28 @@ func TestEncode(t *testing.T) {
 	}
 
 }
+
+func TestLogic(t *testing.T) {
+	c := make(chan any)
+	send := func(b []byte) error {
+		return nil
+	}
+	go handleConnectionLogic(c, send)
+
+	c <- &IAmACamera{
+		Road:  123,
+		Mile:  8,
+		Limit: 60,
+	}
+
+	c <- &IAmADispatcher{
+		Roads: []uint16{123},
+	}
+
+	c <- &Plate{
+		Plate:     "UN1X",
+		Timestamp: 0,
+	}
+
+	close(c)
+}

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"io"
 	"log"
 	"net"
 	"time"
@@ -39,7 +40,7 @@ const (
 func handleConnection(c net.Conn) {
 	defer c.Close()
 
-	ch := parseInputs(c)
+	ch := parseMessages(c)
 	send := func(b []byte) error {
 		_, err := c.Write(b)
 		return err
@@ -61,7 +62,7 @@ func handleConnectionLogic(c chan any, send func([]byte) error) {
 			}
 
 			clientType = Camera
-			log.Println("New camera", v)
+			log.Println("new camera", v)
 		case *IAmADispatcher:
 			if clientType != None {
 				send(encodeError("already another type"))
@@ -69,7 +70,7 @@ func handleConnectionLogic(c chan any, send func([]byte) error) {
 			}
 
 			clientType = Dispatcher
-			log.Println("New dispatcher", v)
+			log.Println("new dispatcher", v)
 		case *WantHeartbeat:
 			if spawnedHb {
 				send(encodeError("already sending heartbeat"))
@@ -97,9 +98,9 @@ func handleConnectionLogic(c chan any, send func([]byte) error) {
 	}
 }
 
-func parseInputs(c net.Conn) chan any {
+func parseMessages(r io.Reader) chan any {
 	buff := new(bytes.Buffer)
-	buff.ReadFrom(c)
+	buff.ReadFrom(r)
 
 	ch := make(chan any)
 
