@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"log"
 	"net"
+	"time"
 )
 
 func main() {
@@ -26,8 +28,118 @@ func main() {
 	}
 }
 
+type ClientType int
+
+const (
+	None ClientType = iota
+	Camera
+	Dispatcher
+)
+
 func handleConnection(c net.Conn) {
 	defer c.Close()
+
+	ch := parseInputs(c)
+	send := func(b []byte) error {
+		_, err := c.Write(b)
+		return err
+	}
+	handleConnectionLogic(ch, send)
+}
+
+// With the connection abstracted away
+func handleConnectionLogic(c chan any, send func([]byte) error) {
+	clientType := None
+	spawnedHb := false
+
+	for msg := range c {
+		switch v := msg.(type) {
+		case *IAmACamera:
+			if clientType != None {
+				send(encodeError("already another type"))
+				continue
+			}
+
+			clientType = Camera
+			log.Println("New camera", v)
+		case *IAmADispatcher:
+			if clientType != None {
+				send(encodeError("already another type"))
+				continue
+			}
+
+			clientType = Dispatcher
+			log.Println("New dispatcher", v)
+		case *WantHeartbeat:
+			if spawnedHb {
+				send(encodeError("already sending heartbeat"))
+				continue
+			}
+			go func() {
+				log.Println("starting heartbeat every", v.Interval, "ds")
+				for {
+					err := send(encodeHeartbeat())
+					if err != nil {
+						break
+					}
+					deciseconds := time.Second / 10
+					time.Sleep(time.Duration(v.Interval) * deciseconds)
+				}
+				log.Println("stopped heartbeat every", v.Interval, "ds")
+			}()
+			spawnedHb = true
+		case *Plate:
+			if clientType != Camera {
+				send(encodeError("you are not a camera"))
+				continue
+			}
+		}
+	}
+}
+
+func parseInputs(c net.Conn) chan any {
+	buff := new(bytes.Buffer)
+	buff.ReadFrom(c)
+
+	ch := make(chan any)
+
+	go func() {
+		defer close(ch)
+		var curr []byte
+		for {
+			b, err := buff.ReadByte()
+			if err != nil {
+				break
+			}
+			curr = append(curr, b)
+
+			cam := parseIAmACamera(curr)
+			if cam.Ok {
+				curr = cam.Next
+				ch <- cam.Value
+			}
+
+			disp := parseIAmADispatcher(curr)
+			if disp.Ok {
+				curr = disp.Next
+				ch <- disp.Value
+			}
+
+			plate := parsePlate(curr)
+			if plate.Ok {
+				curr = plate.Next
+				ch <- plate.Value
+			}
+
+			hb := parseWantHeartbeat(curr)
+			if hb.Ok {
+				curr = hb.Next
+				ch <- hb
+			}
+		}
+	}()
+
+	return ch
 }
 
 type Plate struct {
