@@ -182,6 +182,24 @@ func TestIndividualParser(t *testing.T) {
 		}
 		runParsingCases(t, dispatchCases)
 	})
+
+	t.Run("undefined cases", func(t *testing.T) {
+		uteq := func(ut1, ut2 *infra.UndefinedType) bool {
+			return ut1.Data == ut2.Data
+		}
+		utCases := []ParsingCases[*infra.UndefinedType]{
+			{
+				in: []byte{0x05, 0x15},
+				expected: &infra.UndefinedType{
+					Data: 0x05,
+				},
+				newLen: 1,
+				fn:     infra.ParseUndefinedType,
+				eq:     uteq,
+			},
+		}
+		runParsingCases(t, utCases)
+	})
 }
 
 func TestCombinedParser(t *testing.T) {

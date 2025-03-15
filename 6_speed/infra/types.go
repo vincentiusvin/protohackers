@@ -34,3 +34,7 @@ type IAmACamera struct {
 type IAmADispatcher struct {
 	Roads []uint16
 }
+
+type UndefinedType struct {
+	Data uint8
+}

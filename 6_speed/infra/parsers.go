@@ -50,49 +50,82 @@ func ParseMessages(r io.Reader, cancel context.CancelFunc) chan any {
 }
 
 func executeParse(ch chan any, curr []byte) []byte {
+
 	spe_err := ParseError(curr)
 	if spe_err.Ok {
-		curr = spe_err.Next
 		ch <- spe_err.Value
+		return spe_err.Next
 	}
 
 	plate := ParsePlate(curr)
 	if plate.Ok {
-		curr = plate.Next
 		ch <- plate.Value
+		return plate.Next
 	}
 
 	tick := ParseTicket(curr)
 	if tick.Ok {
-		curr = tick.Next
 		ch <- tick.Value
+		return tick.Next
 	}
 
 	whb := ParseWantHeartbeat(curr)
 	if whb.Ok {
-		curr = whb.Next
 		ch <- whb.Value
+		return whb.Next
 	}
 
 	hb := ParseHeartbeat(curr)
 	if hb.Ok {
-		curr = hb.Next
 		ch <- hb.Value
+		return hb.Next
 	}
 
 	cam := ParseIAmACamera(curr)
 	if cam.Ok {
-		curr = cam.Next
 		ch <- cam.Value
+		return cam.Next
 	}
 
 	disp := ParseIAmADispatcher(curr)
 	if disp.Ok {
-		curr = disp.Next
 		ch <- disp.Value
+		return disp.Next
+
+	}
+
+	undef := ParseUndefinedType(curr)
+	if undef.Ok {
+		ch <- undef.Value
+		return undef.Next
 	}
 
 	return curr
+}
+
+func ParseUndefinedType(b []byte) ParseResult[*UndefinedType] {
+	var ret ParseResult[*UndefinedType]
+
+	typeHex := parseUint8(b)
+	if !typeHex.Ok {
+		return ret
+	}
+
+	allowedHex := []uint8{
+		0x10, 0x20, 0x21, 0x40, 0x41, 0x80, 0x81,
+	}
+
+	for _, h := range allowedHex {
+		if h == typeHex.Value {
+			return ret
+		}
+	}
+	ret.Ok = true
+	ret.Value = &UndefinedType{
+		Data: typeHex.Value,
+	}
+	ret.Next = typeHex.Next
+	return ret
 }
 
 func ParseError(b []byte) ParseResult[*SpeedError] {

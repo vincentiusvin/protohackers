@@ -136,6 +136,9 @@ func handleConnectionLogic(ctx context.Context, incoming chan any, outgoing chan
 			ctrl.AddDispatcher(v.Roads, ch)
 			clientType = Dispatcher
 			log.Printf("new dispatcher on roads %v\n", v.Roads)
+
+		case *infra.UndefinedType:
+			sendError("unknown data")
 		}
 	}
 }
