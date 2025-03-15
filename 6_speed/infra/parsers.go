@@ -18,7 +18,9 @@ func ParseMessages(r io.Reader, cancel context.CancelFunc) chan any {
 
 	go func() {
 		defer close(ch)
-		defer cancel()
+		if cancel != nil {
+			defer cancel()
+		}
 
 		var curr []byte
 
@@ -30,52 +32,67 @@ func ParseMessages(r io.Reader, cancel context.CancelFunc) chan any {
 			}
 			curr = append(curr, buff[:n]...)
 
-			spe_err := ParseError(curr)
-			if spe_err.Ok {
-				curr = spe_err.Next
-				ch <- spe_err.Value
-			}
+			for {
+				newcurr := executeParse(ch, curr)
 
-			plate := ParsePlate(curr)
-			if plate.Ok {
-				curr = plate.Next
-				ch <- plate.Value
-			}
+				noMoreToParse := len(newcurr) == 0
+				nothingParsed := len(newcurr) == len(curr)
+				curr = newcurr
 
-			tick := ParseTicket(curr)
-			if tick.Ok {
-				curr = tick.Next
-				ch <- tick.Value
+				if noMoreToParse || nothingParsed {
+					break
+				}
 			}
-
-			whb := ParseWantHeartbeat(curr)
-			if whb.Ok {
-				curr = whb.Next
-				ch <- whb.Value
-			}
-
-			hb := ParseHeartbeat(curr)
-			if hb.Ok {
-				curr = hb.Next
-				ch <- hb.Value
-			}
-
-			cam := ParseIAmACamera(curr)
-			if cam.Ok {
-				curr = cam.Next
-				ch <- cam.Value
-			}
-
-			disp := ParseIAmADispatcher(curr)
-			if disp.Ok {
-				curr = disp.Next
-				ch <- disp.Value
-			}
-
 		}
 	}()
 
 	return ch
+}
+
+func executeParse(ch chan any, curr []byte) []byte {
+	spe_err := ParseError(curr)
+	if spe_err.Ok {
+		curr = spe_err.Next
+		ch <- spe_err.Value
+	}
+
+	plate := ParsePlate(curr)
+	if plate.Ok {
+		curr = plate.Next
+		ch <- plate.Value
+	}
+
+	tick := ParseTicket(curr)
+	if tick.Ok {
+		curr = tick.Next
+		ch <- tick.Value
+	}
+
+	whb := ParseWantHeartbeat(curr)
+	if whb.Ok {
+		curr = whb.Next
+		ch <- whb.Value
+	}
+
+	hb := ParseHeartbeat(curr)
+	if hb.Ok {
+		curr = hb.Next
+		ch <- hb.Value
+	}
+
+	cam := ParseIAmACamera(curr)
+	if cam.Ok {
+		curr = cam.Next
+		ch <- cam.Value
+	}
+
+	disp := ParseIAmADispatcher(curr)
+	if disp.Ok {
+		curr = disp.Next
+		ch <- disp.Value
+	}
+
+	return curr
 }
 
 func ParseError(b []byte) ParseResult[*SpeedError] {

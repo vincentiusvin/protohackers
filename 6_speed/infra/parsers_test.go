@@ -1,6 +1,7 @@
 package infra_test
 
 import (
+	"bytes"
 	"protohackers/6_speed/infra"
 	"slices"
 	"testing"
@@ -29,7 +30,7 @@ func runParsingCases[T any](t *testing.T, cases []ParsingCases[T]) {
 	}
 }
 
-func TestParser(t *testing.T) {
+func TestIndividualParser(t *testing.T) {
 	t.Run("error cases", func(t *testing.T) {
 		erreq := func(p1, p2 *infra.SpeedError) bool {
 			return p1.Msg == p2.Msg
@@ -181,5 +182,38 @@ func TestParser(t *testing.T) {
 		}
 		runParsingCases(t, dispatchCases)
 	})
+}
+
+func TestCombinedParser(t *testing.T) {
+	in := []byte{
+		0x20, 0x04, 0x55, 0x4e, 0x31, 0x58, 0x00, 0x00, 0x03, 0xe8,
+		0x20, 0x04, 0x55, 0x4e, 0x32, 0x58, 0x00, 0x00, 0x03, 0xe8,
+	}
+	in_r := new(bytes.Buffer)
+	in_r.Write(in)
+
+	c := infra.ParseMessages(in_r, nil)
+
+	pleq := func(p1, p2 *infra.Plate) bool {
+		return p1.Plate == p2.Plate && p1.Timestamp == p2.Timestamp
+	}
+
+	out1 := (<-c).(*infra.Plate)
+	exp1 := &infra.Plate{
+		Plate:     "UN1X",
+		Timestamp: 1000,
+	}
+	if !pleq(out1, exp1) {
+		t.Fatalf("wrong output. expect %v got %v", exp1, out1)
+	}
+
+	out2 := (<-c).(*infra.Plate)
+	exp2 := &infra.Plate{
+		Plate:     "UN2X",
+		Timestamp: 1000,
+	}
+	if !pleq(out2, exp2) {
+		t.Fatalf("wrong output. expect %v got %v", exp2, out2)
+	}
 
 }
