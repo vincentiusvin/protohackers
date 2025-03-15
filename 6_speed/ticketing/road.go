@@ -7,7 +7,7 @@ import (
 	"protohackers/6_speed/infra"
 )
 
-type Road struct {
+type road struct {
 	num         uint16
 	dispatchers []chan *infra.Ticket
 	tickets     []*infra.Ticket
@@ -15,20 +15,20 @@ type Road struct {
 	limit       uint16
 }
 
-func MakeRoad(roadNum uint16) *Road {
-	return &Road{
+func makeRoad(roadNum uint16) *road {
+	return &road{
 		num:         roadNum,
 		dispatchers: make([]chan *infra.Ticket, 0),
 		plates:      make(map[string][]*Plate),
 	}
 }
 
-func (rd *Road) addTicket(t *infra.Ticket) {
+func (rd *road) addTicket(t *infra.Ticket) {
 	rd.tickets = append(rd.tickets, t)
 	rd.processTicket()
 }
 
-func (rd *Road) processTicket() {
+func (rd *road) processTicket() {
 	if len(rd.dispatchers) == 0 {
 		return
 	}
@@ -41,14 +41,14 @@ func (rd *Road) processTicket() {
 	rd.tickets = make([]*infra.Ticket, 0)
 }
 
-func (rd *Road) getPlateRecords(plate string) []*Plate {
+func (rd *road) getPlateRecords(plate string) []*Plate {
 	if _, ok := rd.plates[plate]; !ok {
 		rd.plates[plate] = make([]*Plate, 0)
 	}
 	return rd.plates[plate]
 }
 
-func (rd *Road) issueTickets(plate string) {
+func (rd *road) issueTickets(plate string) {
 	recs := rd.getPlateRecords(plate)
 
 	violatedDays := make(map[int]bool)

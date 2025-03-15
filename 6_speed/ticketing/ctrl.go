@@ -16,14 +16,18 @@ type Plate struct {
 	Mile      uint16
 }
 
+func (pl *Plate) String() string {
+	return fmt.Sprintf("{%v %v %v %v %v}", pl.Mile, pl.Plate, pl.Road, pl.Ticketed, pl.Timestamp)
+}
+
 type Controller struct {
-	roads map[uint16]*Road
+	roads map[uint16]*road
 	mu    sync.Mutex
 }
 
 func MakeController() *Controller {
 	return &Controller{
-		roads: make(map[uint16]*Road),
+		roads: make(map[uint16]*road),
 	}
 }
 
@@ -68,13 +72,9 @@ func (g *Controller) AddPlates(plate *Plate) {
 	rd.issueTickets(plate.Plate)
 }
 
-func (pl *Plate) String() string {
-	return fmt.Sprintf("{%v %v %v %v %v}", pl.Mile, pl.Plate, pl.Road, pl.Ticketed, pl.Timestamp)
-}
-
-func (g *Controller) getRoad(roadNum uint16) *Road {
+func (g *Controller) getRoad(roadNum uint16) *road {
 	if _, ok := g.roads[roadNum]; !ok {
-		g.roads[roadNum] = MakeRoad(roadNum)
+		g.roads[roadNum] = makeRoad(roadNum)
 	}
 	return g.roads[roadNum]
 }
