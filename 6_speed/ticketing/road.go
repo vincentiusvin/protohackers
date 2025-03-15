@@ -20,6 +20,7 @@ func makeRoad(roadNum uint16) *road {
 		num:         roadNum,
 		dispatchers: make([]chan *infra.Ticket, 0),
 		cars:        make(map[string]*car),
+		sent:        make(map[*ticket]bool),
 	}
 }
 

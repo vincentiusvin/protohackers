@@ -15,6 +15,7 @@ func makeCar(plate string) *car {
 	return &car{
 		plateString: plate,
 		plates:      make([]*Plate, 0),
+		violations:  make(map[int]*ticket),
 	}
 }
 
@@ -57,7 +58,7 @@ func (c *car) registerViolations(limit float64) {
 			}
 			lastPl := c.plates[last]
 
-			tick := makeTicket(pl, lastPl)
+			tick := makeTicket(lastPl, pl)
 			mph := tick.speed()
 
 			if mph <= limit {
