@@ -31,3 +31,15 @@ func (t *ticket) speed() float64 {
 	mph := math.Round(3600 * deltaMile / deltaT)
 	return mph
 }
+
+func (t *ticket) days() []int {
+	ret := make([]int, 0)
+	startDay := math.Floor(float64(t.pl1.Timestamp) / 86400)
+	endDay := math.Floor(float64(t.pl2.Timestamp) / 86400)
+
+	for curr := startDay; curr <= endDay; curr++ {
+		ret = append(ret, int(curr))
+	}
+
+	return ret
+}
