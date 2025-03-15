@@ -22,7 +22,7 @@ func makeCar(plate string) *car {
 func (c *car) addPlate(pl *Plate) {
 	c.plates = append(c.plates, pl)
 
-	log.Printf("Plate %v found on road %v at %v", pl.Plate, pl.Road, pl.Timestamp)
+	log.Printf("Plate %v found on road %v mile %v time %v", pl.Plate, pl.Road, pl.Mile, pl.Timestamp)
 
 	slices.SortFunc(c.plates, func(a *Plate, b *Plate) int {
 		return int(a.Timestamp) - int(b.Timestamp)

@@ -119,7 +119,7 @@ func handleConnectionLogic(ctx context.Context, incoming chan any, outgoing chan
 			ctrl.UpdateLimit(v.Road, v.Limit)
 			clientType = Camera
 			camera = v
-			log.Println("new camera", v)
+			log.Printf("new camera on road %v mile %v\n", v.Road, v.Mile)
 
 		case *infra.IAmADispatcher:
 			if clientType != None {
@@ -135,7 +135,7 @@ func handleConnectionLogic(ctx context.Context, incoming chan any, outgoing chan
 			}()
 			ctrl.AddDispatcher(v.Roads, ch)
 			clientType = Dispatcher
-			log.Println("new dispatcher", v)
+			log.Printf("new dispatcher on roads %v\n", v.Roads)
 		}
 	}
 }

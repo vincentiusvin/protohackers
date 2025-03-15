@@ -2,6 +2,7 @@ package ticketing
 
 import (
 	"log"
+	"math"
 	"math/rand"
 	"protohackers/6_speed/infra"
 )
@@ -77,7 +78,7 @@ func (rd *road) processTicket() {
 			Timestamp1: ticket.pl1.Timestamp,
 			Mile2:      ticket.pl2.Mile,
 			Timestamp2: ticket.pl2.Timestamp,
-			Speed:      uint16(mph * 100),
+			Speed:      uint16(math.Round(mph * 100)),
 		}
 		rd.sent[ticket] = true
 

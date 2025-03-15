@@ -45,6 +45,7 @@ func (g *Controller) AddDispatcher(roads []uint16, ch chan *infra.Ticket) {
 		rd := g.getRoad(roadNum)
 		rd.addDispatcher(ch)
 	}
+
 }
 
 func (g *Controller) AddPlates(plate *Plate) {

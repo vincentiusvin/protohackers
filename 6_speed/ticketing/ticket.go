@@ -28,7 +28,7 @@ func makeTicket(pl1 *Plate, pl2 *Plate) *ticket {
 func (t *ticket) speed() float64 {
 	deltaT := float64(t.pl2.Timestamp - t.pl1.Timestamp)
 	deltaMile := float64(t.pl2.Mile - t.pl1.Mile)
-	mph := math.Round(3600 * deltaMile / deltaT)
+	mph := 3600 * deltaMile / deltaT
 	return mph
 }
 
