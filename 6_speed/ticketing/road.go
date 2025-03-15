@@ -69,6 +69,7 @@ func (rd *road) processTicket() {
 		}
 
 		mph := ticket.speed()
+		ticketingSpeed := uint16(math.Round(mph * 100))
 
 		randDisp := rand.Int() % len(rd.dispatchers)
 		rd.dispatchers[randDisp] <- &infra.Ticket{
@@ -82,6 +83,6 @@ func (rd *road) processTicket() {
 		}
 		rd.sent[ticket] = true
 
-		log.Printf("Ticketing %v. Speed: %v > %v\n", ticket.pl1.Plate, mph, rd.limit)
+		log.Printf("ticketing %v. Speed (mph): %v > %v. Ticketing speed: %v\n", ticket.pl1.Plate, mph, rd.limit, ticketingSpeed)
 	}
 }
