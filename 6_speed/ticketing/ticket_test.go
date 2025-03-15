@@ -84,7 +84,7 @@ func TestTicketingBasic(t *testing.T) {
 	}
 }
 
-// 3 traffic violations but we should get 2 tickets
+// 2 traffic violations but we should get 1 tickets
 func TestTicketingDay1(t *testing.T) {
 	c := ticketing.MakeController()
 
@@ -126,7 +126,7 @@ func TestTicketingDay1(t *testing.T) {
 	}
 }
 
-// 3 traffic violations but we should get 2 tickets
+// 2 traffic violations but we should get 1 tickets
 // same as above but in different orders
 func TestTicketingDay2(t *testing.T) {
 	c := ticketing.MakeController()
@@ -158,6 +158,55 @@ func TestTicketingDay2(t *testing.T) {
 		Road:      roadNum,
 		Mile:      8,
 		Timestamp: 0,
+	})
+
+	<-outCh
+
+	select {
+	case <-outCh:
+		t.Fatalf("got two tickets on same day. expected only 1")
+	default:
+	}
+}
+
+// 3 traffic violations but we should get 1 tickets
+func TestTicketingDay3(t *testing.T) {
+	c := ticketing.MakeController()
+
+	var roadNum uint16 = 10
+	var plate string = "UN1X"
+
+	outCh := make(chan *infra.Ticket, 2)
+	c.AddDispatcher([]uint16{roadNum}, outCh)
+
+	c.UpdateLimit(roadNum, 60)
+
+	c.AddPlates(&ticketing.Plate{
+		Plate:     plate,
+		Road:      roadNum,
+		Mile:      699,
+		Timestamp: 38343206,
+	})
+
+	c.AddPlates(&ticketing.Plate{
+		Plate:     plate,
+		Road:      roadNum,
+		Mile:      330,
+		Timestamp: 38359616,
+	})
+
+	c.AddPlates(&ticketing.Plate{
+		Plate:     plate,
+		Road:      roadNum,
+		Mile:      761,
+		Timestamp: 38340449,
+	})
+
+	c.AddPlates(&ticketing.Plate{
+		Plate:     plate,
+		Road:      roadNum,
+		Mile:      225,
+		Timestamp: 38364285,
 	})
 
 	<-outCh
