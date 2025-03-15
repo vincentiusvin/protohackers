@@ -71,10 +71,20 @@ func (c *car) registerViolations(limit float64) {
 	}()
 
 	for _, t := range tickets {
+		collide := false
 		for _, d := range t.days() {
-			if _, ok := c.violations[d]; !ok {
-				c.violations[d] = t
+			if c.violations[d] != nil {
+				collide = true
+				break
 			}
+		}
+
+		if collide {
+			continue
+		}
+
+		for _, d := range t.days() {
+			c.violations[d] = t
 		}
 	}
 }
