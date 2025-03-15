@@ -79,6 +79,7 @@ func (rd *road) processTicket() {
 			Timestamp2: ticket.pl2.Timestamp,
 			Speed:      uint16(mph * 100),
 		}
+		rd.sent[ticket] = true
 
 		log.Printf("Ticketing %v. Speed: %v > %v\n", ticket.pl1.Plate, mph, rd.limit)
 	}
