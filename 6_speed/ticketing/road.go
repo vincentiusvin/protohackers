@@ -5,13 +5,13 @@ import (
 	"math"
 	"math/rand/v2"
 	"protohackers/6_speed/infra"
+	"slices"
 )
 
 type road struct {
 	num         uint16
 	dispatchers []chan *infra.Ticket
-	tickets     []*infra.Ticket
-	plates      map[string][]*Plate // map of plate number -> plate
+	cars        map[string]*car
 	limit       uint16
 }
 
@@ -19,12 +19,35 @@ func makeRoad(roadNum uint16) *road {
 	return &road{
 		num:         roadNum,
 		dispatchers: make([]chan *infra.Ticket, 0),
-		plates:      make(map[string][]*Plate),
+		cars:        make(map[string]*car),
 	}
+}
+
+func (rd *road) updateLimit(limit uint16) {
+	rd.limit = limit
+	log.Printf("Road %v got speed limit updated to: %v", rd.num, limit)
+}
+
+func (rd *road) addPlate(plate *Plate) {
+	recs := rd.getPlateRecords(plate.Plate)
+	recs = append(recs, plate)
+	rd.plates[plate.Plate] = recs
+
+	log.Printf("Plate %v found on road %v at %v", plate.Plate, plate.Road, plate.Timestamp)
+
+	slices.SortFunc(recs, func(a *Plate, b *Plate) int {
+		return int(a.Timestamp) - int(b.Timestamp)
+	})
 }
 
 func (rd *road) addTicket(t *infra.Ticket) {
 	rd.tickets = append(rd.tickets, t)
+	rd.processTicket()
+}
+
+func (rd *road) addDispatcher(ch chan *infra.Ticket) {
+	rd.dispatchers = append(rd.dispatchers, ch)
+	log.Printf("Dispatcher registered on road %v", rd.num)
 	rd.processTicket()
 }
 

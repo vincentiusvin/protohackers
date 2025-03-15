@@ -2,9 +2,7 @@ package ticketing
 
 import (
 	"fmt"
-	"log"
 	"protohackers/6_speed/infra"
-	"slices"
 	"sync"
 )
 
@@ -36,8 +34,7 @@ func (g *Controller) UpdateLimit(roadNum uint16, limit uint16) {
 	defer g.mu.Unlock()
 
 	rd := g.getRoad(roadNum)
-	rd.limit = limit
-	log.Printf("Road %v got speed limit updated to: %v", roadNum, limit)
+	rd.updateLimit(limit)
 }
 
 func (g *Controller) AddDispatcher(roads []uint16, ch chan *infra.Ticket) {
@@ -46,11 +43,8 @@ func (g *Controller) AddDispatcher(roads []uint16, ch chan *infra.Ticket) {
 
 	for _, roadNum := range roads {
 		rd := g.getRoad(roadNum)
-		rd.dispatchers = append(rd.dispatchers, ch)
-		rd.processTicket()
-		log.Printf("Dispatcher registered on road %v", roadNum)
+		rd.addDispatcher(ch)
 	}
-
 }
 
 func (g *Controller) AddPlates(plate *Plate) {
@@ -58,17 +52,7 @@ func (g *Controller) AddPlates(plate *Plate) {
 	defer g.mu.Unlock()
 
 	rd := g.getRoad(plate.Road)
-
-	recs := rd.getPlateRecords(plate.Plate)
-	recs = append(recs, plate)
-	rd.plates[plate.Plate] = recs
-
-	log.Printf("Plate %v found on road %v at %v", plate.Plate, plate.Road, plate.Timestamp)
-
-	slices.SortFunc(recs, func(a *Plate, b *Plate) int {
-		return int(a.Timestamp) - int(b.Timestamp)
-	})
-
+	rd.addPlate(plate)
 	rd.issueTickets(plate.Plate)
 }
 
