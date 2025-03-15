@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/rand/v2"
 	"protohackers/6_speed/infra"
-	"slices"
 )
 
 type road struct {
@@ -28,16 +27,16 @@ func (rd *road) updateLimit(limit uint16) {
 	log.Printf("Road %v got speed limit updated to: %v", rd.num, limit)
 }
 
+func (rd *road) getCar(plate string) *car {
+	if _, ok := rd.cars[plate]; !ok {
+		rd.cars[plate] = makeCar(plate)
+	}
+	return rd.cars[plate]
+}
+
 func (rd *road) addPlate(plate *Plate) {
-	recs := rd.getPlateRecords(plate.Plate)
-	recs = append(recs, plate)
-	rd.plates[plate.Plate] = recs
-
-	log.Printf("Plate %v found on road %v at %v", plate.Plate, plate.Road, plate.Timestamp)
-
-	slices.SortFunc(recs, func(a *Plate, b *Plate) int {
-		return int(a.Timestamp) - int(b.Timestamp)
-	})
+	car := rd.getCar(plate.Plate)
+	car.addPlate(plate)
 }
 
 func (rd *road) addTicket(t *infra.Ticket) {
@@ -62,13 +61,6 @@ func (rd *road) processTicket() {
 	}
 
 	rd.tickets = make([]*infra.Ticket, 0)
-}
-
-func (rd *road) getPlateRecords(plate string) []*Plate {
-	if _, ok := rd.plates[plate]; !ok {
-		rd.plates[plate] = make([]*Plate, 0)
-	}
-	return rd.plates[plate]
 }
 
 func (rd *road) issueTickets(plate string) {
