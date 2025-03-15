@@ -10,12 +10,11 @@ type Plate struct {
 	Plate     string
 	Timestamp uint32
 	Road      uint16
-	Ticketed  bool
 	Mile      uint16
 }
 
 func (pl *Plate) String() string {
-	return fmt.Sprintf("{%v %v %v %v %v}", pl.Mile, pl.Plate, pl.Road, pl.Ticketed, pl.Timestamp)
+	return fmt.Sprintf("{%v %v %v %v}", pl.Mile, pl.Plate, pl.Road, pl.Timestamp)
 }
 
 type Controller struct {
