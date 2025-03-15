@@ -1,5 +1,16 @@
 My solutions to https://protohackers.com/
 
+Done:
+
+- [x] 0 - Smoke Test
+- [x] 1 - Prime Time
+- [x] 2 - Means to an End
+- [x] 3 - Budget Chat
+- [x] 4 - Unusual Database Program
+- [x] 5 - Mob in the Middle
+- [x] 6 - Speed Daemon
+- [ ] 7 - Line Reversal
+
 # Running
 
 To deploy, run
