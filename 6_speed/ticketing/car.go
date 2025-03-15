@@ -2,6 +2,8 @@ package ticketing
 
 import (
 	"log"
+	"math"
+	"protohackers/6_speed/infra"
 	"slices"
 )
 
@@ -31,4 +33,55 @@ func (c *car) addPlate(pl *Plate) {
 
 func (c *car) getTickets() {
 
+}
+
+func (c *car) issueTickets(limit float64) {
+	for i, pl := range c.plates {
+		last := i - 1
+		if last < 0 || last >= len(c.plates) {
+			continue
+		}
+		lastPl := c.plates[last]
+
+		tick := makeTicket(pl, lastPl)
+		mph := tick.speed()
+
+		if mph <= limit {
+			continue
+		}
+
+		startDay := int(math.Floor(float64(lastPl.Timestamp) / 86400))
+		endDay := int(math.Floor(float64(pl.Timestamp) / 86400))
+
+		log.Printf("Ticketing %v. Speed: %v > %v. Days: %v-%v\n", pl.Plate, mph, limit, startDay, endDay)
+
+		// we still need to process previous tickets
+		// just prevent it from sending the ticket over
+		// todo: find a better way to do this
+		for currDay := startDay; currDay <= endDay; currDay += 1 {
+			if violatedDays[currDay] {
+				log.Printf("Skipped ticketing for day %v due to previous ticket", currDay)
+				continue
+			}
+			violatedDays[currDay] = true
+
+			if pl.Ticketed {
+				continue
+			}
+			log.Printf("Ticketing for day %v", currDay)
+			rd.addTicket(
+				&infra.Ticket{
+					Plate:      pl.Plate,
+					Road:       rd.num,
+					Mile1:      lastPl.Mile,
+					Timestamp1: lastPl.Timestamp,
+					Mile2:      pl.Mile,
+					Timestamp2: pl.Timestamp,
+					Speed:      uint16(100 * mph),
+				},
+			)
+		}
+
+		pl.Ticketed = true
+	}
 }

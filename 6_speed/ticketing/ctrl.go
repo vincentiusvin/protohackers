@@ -53,7 +53,6 @@ func (g *Controller) AddPlates(plate *Plate) {
 
 	rd := g.getRoad(plate.Road)
 	rd.addPlate(plate)
-	rd.issueTickets(plate.Plate)
 }
 
 func (g *Controller) getRoad(roadNum uint16) *road {
