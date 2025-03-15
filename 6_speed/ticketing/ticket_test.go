@@ -1,7 +1,6 @@
 package ticketing_test
 
 import (
-	"log"
 	"protohackers/6_speed/infra"
 	"protohackers/6_speed/ticketing"
 	"reflect"
@@ -52,20 +51,12 @@ func TestTicketingBasic(t *testing.T) {
 
 // 3 traffic violations but we should get 2 tickets
 func TestTicketingDay(t *testing.T) {
-	log.Println("2")
 	c := ticketing.MakeController()
 
 	var roadNum uint16 = 10
 	var plate string = "UN1X"
 
 	c.UpdateLimit(roadNum, 60)
-
-	c.AddPlates(&ticketing.Plate{
-		Plate:     plate,
-		Road:      roadNum,
-		Mile:      8,
-		Timestamp: 0,
-	})
 
 	c.AddPlates(&ticketing.Plate{
 		Plate:     plate,
@@ -79,6 +70,13 @@ func TestTicketingDay(t *testing.T) {
 		Road:      roadNum,
 		Mile:      10,
 		Timestamp: 90,
+	})
+
+	c.AddPlates(&ticketing.Plate{
+		Plate:     plate,
+		Road:      roadNum,
+		Mile:      8,
+		Timestamp: 0,
 	})
 
 	outCh := make(chan *infra.Ticket, 2)
