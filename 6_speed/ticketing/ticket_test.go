@@ -8,44 +8,79 @@ import (
 )
 
 func TestTicketingBasic(t *testing.T) {
-	c := ticketing.MakeController()
-
-	var roadNum uint16 = 10
-	var plate string = "UN1X"
-	expected := &infra.Ticket{
-		Plate:      "UN1X",
-		Road:       10,
-		Mile1:      8,
-		Timestamp1: 0,
-		Mile2:      9,
-		Timestamp2: 45,
-		Speed:      8000,
+	type basicTestCases struct {
+		expected *infra.Ticket
+		in1      *ticketing.Plate
+		in2      *ticketing.Plate
 	}
 
-	c.UpdateLimit(roadNum, 60)
+	var limit uint16 = 0
+	var roadNum uint16 = 10
+	cases := []basicTestCases{
+		{
+			in1: &ticketing.Plate{
+				Plate:     "UN1X",
+				Road:      roadNum,
+				Mile:      8,
+				Timestamp: 0,
+			},
+			in2: &ticketing.Plate{
+				Plate:     "UN1X",
+				Road:      roadNum,
+				Mile:      9,
+				Timestamp: 45,
+			},
+			expected: &infra.Ticket{
+				Plate:      "UN1X",
+				Road:       roadNum,
+				Mile1:      8,
+				Timestamp1: 0,
+				Mile2:      9,
+				Timestamp2: 45,
+				Speed:      8000,
+			},
+		},
+		{
+			in1: &ticketing.Plate{
+				Plate:     "UN1X",
+				Road:      roadNum,
+				Mile:      9,
+				Timestamp: 0,
+			},
+			in2: &ticketing.Plate{
+				Plate:     "UN1X",
+				Road:      roadNum,
+				Mile:      8,
+				Timestamp: 45,
+			},
+			expected: &infra.Ticket{
+				Plate:      "UN1X",
+				Road:       roadNum,
+				Mile1:      9,
+				Timestamp1: 0,
+				Mile2:      8,
+				Timestamp2: 45,
+				Speed:      8000,
+			},
+		},
+	}
 
-	c.AddPlates(&ticketing.Plate{
-		Plate:     plate,
-		Road:      roadNum,
-		Mile:      8,
-		Timestamp: 0,
-	})
+	for _, ticketCase := range cases {
+		c := ticketing.MakeController()
 
-	c.AddPlates(&ticketing.Plate{
-		Plate:     plate,
-		Road:      roadNum,
-		Mile:      9,
-		Timestamp: 45,
-	})
+		c.UpdateLimit(roadNum, limit)
+		c.AddPlates(ticketCase.in1)
+		c.AddPlates(ticketCase.in2)
 
-	// Need to buffer ticket first if no dispatcher.
-	// So we register it late.
-	outCh := make(chan *infra.Ticket, 1)
-	c.AddDispatcher([]uint16{roadNum}, outCh)
-	out := <-outCh
+		// Need to buffer ticket first if no dispatcher.
+		// So we register it late to test for that.
+		outCh := make(chan *infra.Ticket, 1)
+		c.AddDispatcher([]uint16{roadNum}, outCh)
+		out := <-outCh
 
-	if !reflect.DeepEqual(out, expected) {
-		t.Fatalf("ticket different. expected %v. got %v", expected, out)
+		if !reflect.DeepEqual(out, ticketCase.expected) {
+			t.Fatalf("ticket different. expected %v. got %v", ticketCase.expected, out)
+		}
 	}
 }
 
