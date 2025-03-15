@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"math/rand/v2"
 	"protohackers/6_speed/infra"
 	"slices"
 	"sync"
@@ -18,14 +17,6 @@ type Plate struct {
 	Mile      uint16
 }
 
-type Road struct {
-	num         uint16
-	dispatchers []chan *infra.Ticket
-	tickets     []*infra.Ticket
-	plates      map[string][]*Plate // map of plate number -> plate
-	limit       uint16
-}
-
 type Controller struct {
 	roads map[uint16]*Road
 	mu    sync.Mutex
@@ -35,18 +26,6 @@ func MakeController() *Controller {
 	return &Controller{
 		roads: make(map[uint16]*Road),
 	}
-}
-
-func (g *Controller) getRoad(roadNum uint16) *Road {
-	if _, ok := g.roads[roadNum]; !ok {
-		g.roads[roadNum] = &Road{
-			num:         roadNum,
-			dispatchers: make([]chan *infra.Ticket, 0),
-			plates:      make(map[string][]*Plate),
-		}
-	}
-
-	return g.roads[roadNum]
 }
 
 func (g *Controller) UpdateLimit(roadNum uint16, limit uint16) {
@@ -71,35 +50,6 @@ func (g *Controller) AddDispatcher(roads []uint16, ch chan *infra.Ticket) {
 
 }
 
-func (rd *Road) getPlateRecords(plate string) []*Plate {
-	if _, ok := rd.plates[plate]; !ok {
-		rd.plates[plate] = make([]*Plate, 0)
-	}
-	return rd.plates[plate]
-}
-
-func (rd *Road) processTicket() {
-	if len(rd.dispatchers) == 0 {
-		return
-	}
-
-	for _, c := range rd.tickets {
-		randDisp := rand.Int() % len(rd.dispatchers)
-		rd.dispatchers[randDisp] <- c
-	}
-
-	rd.tickets = make([]*infra.Ticket, 0)
-}
-
-func (rd *Road) addTicket(t *infra.Ticket) {
-	rd.tickets = append(rd.tickets, t)
-	rd.processTicket()
-}
-
-func (pl *Plate) String() string {
-	return fmt.Sprintf("{%v %v %v %v %v}", pl.Mile, pl.Plate, pl.Road, pl.Ticketed, pl.Timestamp)
-}
-
 func (g *Controller) AddPlates(plate *Plate) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -117,6 +67,10 @@ func (g *Controller) AddPlates(plate *Plate) {
 	})
 
 	g.issueTickets(plate.Road, plate.Plate)
+}
+
+func (pl *Plate) String() string {
+	return fmt.Sprintf("{%v %v %v %v %v}", pl.Mile, pl.Plate, pl.Road, pl.Ticketed, pl.Timestamp)
 }
 
 func (g *Controller) issueTickets(road uint16, plate string) {
@@ -176,4 +130,11 @@ func (g *Controller) issueTickets(road uint16, plate string) {
 
 		pl.Ticketed = true
 	}
+}
+
+func (g *Controller) getRoad(roadNum uint16) *Road {
+	if _, ok := g.roads[roadNum]; !ok {
+		g.roads[roadNum] = MakeRoad(roadNum)
+	}
+	return g.roads[roadNum]
 }
