@@ -8,6 +8,7 @@ import (
 
 type LRCPPackets interface {
 	Encode() string
+	GetSession() uint
 }
 
 func Parse(s string) (LRCPPackets, error) {
@@ -42,6 +43,10 @@ func (c *Connect) Encode() string {
 	return fmt.Sprintf("/connect/%v/", c.Session)
 }
 
+func (c *Connect) GetSession() uint {
+	return c.Session
+}
+
 func parseConnect(s string) (*Connect, error) {
 	splits := strings.Split(s, "/")
 	if splits[1] != "connect" {
@@ -72,6 +77,10 @@ func (c *Data) Encode() string {
 	escaped = strings.ReplaceAll(escaped, "/", "\\/")
 
 	return fmt.Sprintf("/data/%v/%v/%v/", c.Session, c.Pos, escaped)
+}
+
+func (c *Data) GetSession() uint {
+	return c.Session
 }
 
 func parseData(s string) (*Data, error) {
@@ -115,6 +124,10 @@ func (c *Ack) Encode() string {
 	return fmt.Sprintf("/ack/%v/%v/", c.Session, c.Length)
 }
 
+func (c *Ack) GetSession() uint {
+	return c.Session
+}
+
 func parseAck(s string) (*Ack, error) {
 	splits := strings.Split(s, "/")
 	if splits[1] != "ack" {
@@ -148,6 +161,10 @@ type Close struct {
 
 func (c *Close) Encode() string {
 	return fmt.Sprintf("/close/%v/", c.Session)
+}
+
+func (c *Close) GetSession() uint {
+	return c.Session
 }
 
 func parseClose(s string) (*Close, error) {
