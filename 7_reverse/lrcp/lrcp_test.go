@@ -99,9 +99,6 @@ func TestParsing(t *testing.T) {
 func TestLRCP(t *testing.T) {
 	ls := lrcp.MakeLRCPServer()
 	ch := make(chan string, 1)
-	out := make(chan string, 1)
-
-	go ls.Process(ch)
 
 	ch <- "/connect/1234567/"
 
