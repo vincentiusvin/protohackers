@@ -1,7 +1,6 @@
 package lrcp_test
 
 import (
-	"fmt"
 	"protohackers/7_reverse/lrcp"
 	"reflect"
 	"testing"
@@ -100,12 +99,16 @@ func TestParsing(t *testing.T) {
 func TestLRCP(t *testing.T) {
 	ls := lrcp.MakeLRCPServer()
 	ch := make(chan string, 1)
+	out := make(chan string, 1)
 
 	go ls.Process(ch)
 
 	ch <- "/connect/1234567/"
 
 	sess := ls.Accept()
-	fmt.Println(sess.Sid)
+
+	ch <- "/data/1234567/0/hello/"
+
+	sess.Resolve()
 
 }
