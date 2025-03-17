@@ -95,3 +95,25 @@ func ParseAck(s string) (*Ack, error) {
 		Length:  uint(lenNum),
 	}, nil
 }
+
+type Close struct {
+	Session uint
+}
+
+func ParseClose(s string) (*Close, error) {
+	splits := strings.Split(s, "/")
+	if splits[1] != "close" {
+		return nil, fmt.Errorf("not an close request")
+	}
+	sessionNum, err := strconv.Atoi(splits[2])
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse session num to int: %w", err)
+	}
+	if sessionNum < 0 {
+		return nil, fmt.Errorf("session number is negative: %v", sessionNum)
+	}
+
+	return &Close{
+		Session: uint(sessionNum),
+	}, nil
+}

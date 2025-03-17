@@ -50,3 +50,17 @@ func TestAck(t *testing.T) {
 		t.Fatalf("expected %v got %v", exp, c.Session)
 	}
 }
+
+func TestClose(t *testing.T) {
+	in := "/close/1234567"
+	exp := &lrcp.Close{
+		Session: 1234567,
+	}
+	c, err := lrcp.ParseClose(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(c, exp) {
+		t.Fatalf("expected %v got %v", exp, c.Session)
+	}
+}
