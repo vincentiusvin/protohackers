@@ -35,3 +35,18 @@ func TestData(t *testing.T) {
 		t.Fatalf("expected %v got %v", exp, c.Session)
 	}
 }
+
+func TestAck(t *testing.T) {
+	in := "/ack/1234567/1024"
+	exp := &lrcp.Ack{
+		Session: 1234567,
+		Length:  1024,
+	}
+	c, err := lrcp.ParseAck(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(c, exp) {
+		t.Fatalf("expected %v got %v", exp, c.Session)
+	}
+}
