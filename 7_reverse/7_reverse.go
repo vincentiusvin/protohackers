@@ -20,15 +20,15 @@ func main() {
 	defer c.Close()
 
 	for {
-		b := make([]byte, 1000)
-		_, addr, err := c.ReadFromUDP(b)
-		if err != nil {
-			panic(err)
-		}
-		log.Println("recv from: ", addr)
+		ListenLRCP(c)
 	}
 }
 
-func ListenLRCP() {
-
+func ListenLRCP(c *net.UDPConn) {
+	b := make([]byte, 1000)
+	_, addr, err := c.ReadFromUDP(b)
+	if err != nil {
+		panic(err)
+	}
+	log.Println("recv from: ", addr)
 }

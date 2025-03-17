@@ -1,6 +1,7 @@
 package lrcp_test
 
 import (
+	"fmt"
 	"protohackers/7_reverse/lrcp"
 	"reflect"
 	"testing"
@@ -94,5 +95,17 @@ func TestParsing(t *testing.T) {
 		}
 		runParse(t, closeCases)
 	})
+}
+
+func TestLRCP(t *testing.T) {
+	ls := lrcp.MakeLRCPServer()
+	ch := make(chan string, 1)
+
+	go ls.Process(ch)
+
+	ch <- "/connect/1234567/"
+
+	sess := ls.Accept()
+	fmt.Println(sess.Sid)
 
 }

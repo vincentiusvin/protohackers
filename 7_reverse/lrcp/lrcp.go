@@ -8,8 +8,9 @@ import (
 // provide a tcp like interface
 // LRCPListen(c *net.UDPConn) *LRCPServer
 // LRCP.Accept() returns a session
-func LRCPListen(c *net.UDPConn) *LRCPServer {
-	srv := makeLRCPServer()
+func LRCPListenUDP(c *net.UDPConn) *LRCPServer {
+	srv := MakeLRCPServer()
+	ch := make(chan string)
 	go func() {
 		for {
 			b := make([]byte, 1000)
@@ -18,42 +19,58 @@ func LRCPListen(c *net.UDPConn) *LRCPServer {
 				panic(err)
 			}
 			log.Println("recv from: ", addr)
-
-			str := string(b[n])
-
-			parsed, err := Parse(str)
-			if err != nil {
-				log.Printf("skipped packet from: %v. err: %v", addr, err)
-			}
-
-			sess := parsed.GetSession()
-			srv.processSession(sess)
+			ch <- string(b[n])
 		}
 	}()
+	go srv.Process(ch)
 	return srv
 }
 
-type LRCPServer struct {
-	sessions map[uint]chan LRCPPackets // otherwise existing packets will continue to be listened by this guy
-	newch    chan uint                 // if we have new channels, it will be broadcasted to this guy
+type LRCPSession struct {
+	Sid uint
+	inc chan LRCPPackets
+	out chan LRCPPackets
+	srv *LRCPServer
 }
 
-func makeLRCPServer() *LRCPServer {
+func makeLRCPSession(sid uint, srv *LRCPServer) *LRCPSession {
+	return &LRCPSession{
+		inc: make(chan LRCPPackets),
+		out: make(chan LRCPPackets),
+		Sid: sid,
+		srv: srv,
+	}
+}
+
+type LRCPServer struct {
+	newch    chan uint             // if we have new channels, it will be broadcasted to this guy
+	sessions map[uint]*LRCPSession // existing channels will be handled by the values here
+}
+
+func MakeLRCPServer() *LRCPServer {
 	serv := &LRCPServer{
-		sessions: make(map[uint]chan LRCPPackets),
+		sessions: make(map[uint]*LRCPSession),
 		newch:    make(chan uint),
 	}
 	return serv
 }
 
-func (ls *LRCPServer) Accept() {
+func (ls *LRCPServer) Accept() *LRCPSession {
 	sid := <-ls.newch
-	ls.sessions[sid] = make(chan LRCPPackets)
+	ls.sessions[sid] = makeLRCPSession(sid, ls)
+	return ls.sessions[sid]
 }
 
-func (ls *LRCPServer) processSession(sid uint) {
-	if ls.sessions[sid] != nil {
-		return
+func (ls *LRCPServer) Process(ch chan string) {
+	for str := range ch {
+		parsed, err := Parse(str)
+		if err != nil {
+			log.Printf("skipped packet %v. err: %v", str, err)
+		}
+		sid := parsed.GetSession()
+		if ls.sessions[sid] != nil {
+			continue
+		}
+		ls.newch <- sid
 	}
-	ls.newch <- sid
 }
