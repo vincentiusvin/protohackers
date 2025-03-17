@@ -1,6 +1,7 @@
 package lrcp_test
 
 import (
+	"fmt"
 	"protohackers/7_reverse/lrcp"
 	"reflect"
 	"testing"
@@ -124,12 +125,18 @@ func TestLRCP(t *testing.T) {
 		}
 	})
 
-	chin <- "/connect/1234567/"
+	go func() {
+		chin <- "/connect/1234567/"
+		chin <- "/data/1234567/0/hello/"
+		chin <- "/data/1234567/5/meong/"
+		chin <- "/data/1234567/10/123/"
+		chin <- "/close/1234567/"
+	}()
 
 	sess := ls.Accept()
-
-	chin <- "/data/1234567/0/hello/"
-
-	sess.Resolve()
-
+	acc := ""
+	for s := range sess.Resolve() {
+		acc += s
+	}
+	fmt.Println(acc)
 }
