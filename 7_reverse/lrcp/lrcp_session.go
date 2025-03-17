@@ -23,19 +23,41 @@ func makeLRCPSession(
 
 func (ls *LRCPSession) process(p LRCPPackets) {
 	switch v := p.(type) {
+	case *Connect:
+		ls.handleConnect()
 	case *Data:
-		if v.Pos == uint(len(ls.buff)) {
-			ls.buff += v.Data
-			ls.resolved <- v.Data
-		}
+		ls.handleData(v)
 	case *Close:
-		ls.Close(v)
+		ls.handleClose()
 	}
 }
 
-func (ls *LRCPSession) Close(v *Close) {
+func (ls *LRCPSession) handleConnect() {
+	ack := &Ack{
+		Session: ls.sid,
+		Length:  uint(len(ls.buff)),
+	}
+	ls.Send(ack.Encode())
+}
+
+func (ls *LRCPSession) handleData(v *Data) {
+	if v.Pos == uint(len(ls.buff)) {
+		ls.buff += v.Data
+		ls.resolved <- v.Data
+	}
+	ack := &Ack{
+		Session: ls.sid,
+		Length:  uint(len(ls.buff)),
+	}
+	ls.Send(ack.Encode())
+}
+
+func (ls *LRCPSession) handleClose() {
 	close(ls.resolved)
-	ls.Send(v.Encode())
+	ack := &Close{
+		Session: ls.sid,
+	}
+	ls.Send(ack.Encode())
 }
 
 func (ls *LRCPSession) Send(s string) {

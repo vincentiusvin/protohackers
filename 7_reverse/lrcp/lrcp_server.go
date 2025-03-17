@@ -65,6 +65,8 @@ func (ls *LRCPServer) process(request string, response func(b []byte) error) {
 	} else {
 		session := makeLRCPSession(sid, ls, response)
 		ls.sessions[sid] = session
+		session.process(parsed)
+
 		ls.newSession <- session
 	}
 }

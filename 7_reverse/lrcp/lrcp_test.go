@@ -126,17 +126,33 @@ func TestLRCP(t *testing.T) {
 	})
 
 	go func() {
-		chin <- "/connect/1234567/"
-		chin <- "/data/1234567/0/hello/"
-		chin <- "/data/1234567/5/meong/"
-		chin <- "/data/1234567/10/123/"
-		chin <- "/close/1234567/"
+		sess := ls.Accept()
+		acc := ""
+		for s := range sess.Resolve() {
+			acc += s
+		}
+		fmt.Println(acc)
 	}()
 
-	sess := ls.Accept()
-	acc := ""
-	for s := range sess.Resolve() {
-		acc += s
+	chin <- "/connect/1234567/"
+	if <-chout != "/ack/1234567/0/" {
+		t.Fatalf("wrong reply to connect")
 	}
-	fmt.Println(acc)
+	chin <- "/data/1234567/0/hello/"
+	if <-chout != "/ack/1234567/5/" {
+		t.Fatalf("wrong reply to data 1")
+	}
+	chin <- "/data/1234567/5/meong/"
+	if <-chout != "/ack/1234567/10/" {
+		t.Fatalf("wrong reply to data 2")
+	}
+	chin <- "/data/1234567/10/123/"
+	if <-chout != "/ack/1234567/13/" {
+		t.Fatalf("wrong reply to data 3")
+	}
+	chin <- "/close/1234567/"
+	if <-chout != "/close/1234567/" {
+		t.Fatalf("wrong reply to close")
+	}
+
 }
