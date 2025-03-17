@@ -39,7 +39,11 @@ type Data struct {
 }
 
 func (c *Data) Encode() string {
-	return fmt.Sprintf("/data/%v/%v/%v/", c.Session, c.Pos, c.Data)
+	escaped := c.Data
+	escaped = strings.ReplaceAll(escaped, "\\", "\\\\")
+	escaped = strings.ReplaceAll(escaped, "/", "\\/")
+
+	return fmt.Sprintf("/data/%v/%v/%v/", c.Session, c.Pos, escaped)
 }
 
 func ParseData(s string) (*Data, error) {
@@ -63,7 +67,9 @@ func ParseData(s string) (*Data, error) {
 		return nil, fmt.Errorf("position number is negative: %v", sessionNum)
 	}
 
-	data := splits[4]
+	data := strings.Join(splits[4:len(splits)-1], "/")
+	data = strings.ReplaceAll(data, "\\/", "/")
+	data = strings.ReplaceAll(data, "\\\\", "\\")
 
 	return &Data{
 		Session: uint(sessionNum),

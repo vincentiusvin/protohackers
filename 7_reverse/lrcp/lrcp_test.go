@@ -16,7 +16,7 @@ func TestConnect(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(c, exp) {
-		t.Fatalf("expected %v got %v", exp, c.Session)
+		t.Fatalf("expected %v got %v", exp, c)
 	}
 	reencode := exp.Encode()
 	if reencode != in {
@@ -31,6 +31,14 @@ func TestData(t *testing.T) {
 	}
 
 	cases := []dataCases{
+		{
+			in: "/data/1234567/0//",
+			exp: &lrcp.Data{
+				Session: 1234567,
+				Pos:     0,
+				Data:    "",
+			},
+		},
 		{
 			in: "/data/1234567/0/hello/",
 			exp: &lrcp.Data{
@@ -55,7 +63,7 @@ func TestData(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(c, testCase.exp) {
-			t.Fatalf("expected %v got %v", testCase.exp, c.Session)
+			t.Fatalf("expected %v got %v", testCase.exp, c)
 		}
 		reencode := testCase.exp.Encode()
 		if reencode != testCase.in {
@@ -75,7 +83,7 @@ func TestAck(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(c, exp) {
-		t.Fatalf("expected %v got %v", exp, c.Session)
+		t.Fatalf("expected %v got %v", exp, c)
 	}
 	reencode := exp.Encode()
 	if reencode != in {
@@ -93,7 +101,7 @@ func TestClose(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(c, exp) {
-		t.Fatalf("expected %v got %v", exp, c.Session)
+		t.Fatalf("expected %v got %v", exp, c)
 	}
 	reencode := exp.Encode()
 	if reencode != in {
