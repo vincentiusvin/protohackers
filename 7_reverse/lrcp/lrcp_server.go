@@ -28,21 +28,28 @@ func (ls *LRCPServer) Accept() *LRCPSession {
 }
 
 func (ls *LRCPServer) ListenUDP(c *net.UDPConn) {
+	ls.Listen(func() LRCPListenerSession {
+		return &LRCPUDPSession{c: c}
+	})
+}
+
+type LRCPListenerSession interface {
+	Read() ([]byte, error)
+	Write([]byte) error
+}
+
+type LRCPListener func() LRCPListenerSession
+
+func (ls *LRCPServer) Listen(list LRCPListener) {
 	go func() {
 		for {
-			b := make([]byte, 1000)
-			n, addr, err := c.ReadFromUDP(b)
+			sess := list()
+			b, err := sess.Read()
 			if err != nil {
 				panic(err)
 			}
-			request := string(b[n])
-			response := func(b []byte) error {
-				_, err := c.WriteToUDP(b, addr)
-				return err
-			}
-
-			ls.process(request, response)
-			log.Println("recv from: ", addr)
+			request := string(b)
+			ls.process(request, sess.Write)
 		}
 	}()
 }
@@ -60,4 +67,28 @@ func (ls *LRCPServer) process(request string, response func(b []byte) error) {
 		ls.sessions[sid] = session
 		ls.newSession <- session
 	}
+}
+
+type LRCPUDPSession struct {
+	c    *net.UDPConn
+	addr *net.UDPAddr
+}
+
+func (lus *LRCPUDPSession) Read() ([]byte, error) {
+	b := make([]byte, 1000)
+	n, addr, err := lus.c.ReadFromUDP(b)
+	if err != nil {
+		return nil, err
+	}
+	lus.addr = addr
+	return b[:n], nil
+}
+
+func (lus *LRCPUDPSession) Write(b []byte) error {
+	if lus.addr == nil {
+		panic("need to call read first before write")
+	}
+
+	_, err := lus.c.WriteToUDP(b, lus.addr)
+	return err
 }

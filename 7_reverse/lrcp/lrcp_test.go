@@ -96,15 +96,39 @@ func TestParsing(t *testing.T) {
 	})
 }
 
+type lrcpMock struct {
+	in  chan string
+	out chan string
+}
+
+func (lm *lrcpMock) Read() ([]byte, error) {
+	b := <-lm.in
+	return []byte(b), nil
+}
+
+func (lm *lrcpMock) Write(b []byte) error {
+	lm.out <- string(b)
+	return nil
+}
+
 func TestLRCP(t *testing.T) {
 	ls := lrcp.MakeLRCPServer()
-	ch := make(chan string, 1)
 
-	ch <- "/connect/1234567/"
+	chin := make(chan string)
+	chout := make(chan string)
+
+	ls.Listen(func() lrcp.LRCPListenerSession {
+		return &lrcpMock{
+			in:  chin,
+			out: chout,
+		}
+	})
+
+	chin <- "/connect/1234567/"
 
 	sess := ls.Accept()
 
-	ch <- "/data/1234567/0/hello/"
+	chin <- "/data/1234567/0/hello/"
 
 	sess.Resolve()
 
