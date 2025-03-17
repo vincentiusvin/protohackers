@@ -6,6 +6,34 @@ import (
 	"strings"
 )
 
+type LRCPPackets interface {
+	Encode() string
+}
+
+func Parse(s string) (LRCPPackets, error) {
+	conn, err := parseConnect(s)
+	if err == nil {
+		return conn, nil
+	}
+
+	data, err := parseData(s)
+	if err == nil {
+		return data, nil
+	}
+
+	ack, err := parseAck(s)
+	if err == nil {
+		return ack, nil
+	}
+
+	cls, err := parseClose(s)
+	if err == nil {
+		return cls, nil
+	}
+
+	return nil, fmt.Errorf("failed to parse %v", s)
+}
+
 type Connect struct {
 	Session uint
 }
@@ -14,7 +42,7 @@ func (c *Connect) Encode() string {
 	return fmt.Sprintf("/connect/%v/", c.Session)
 }
 
-func ParseConnect(s string) (*Connect, error) {
+func parseConnect(s string) (*Connect, error) {
 	splits := strings.Split(s, "/")
 	if splits[1] != "connect" {
 		return nil, fmt.Errorf("not a connect request")
@@ -46,7 +74,7 @@ func (c *Data) Encode() string {
 	return fmt.Sprintf("/data/%v/%v/%v/", c.Session, c.Pos, escaped)
 }
 
-func ParseData(s string) (*Data, error) {
+func parseData(s string) (*Data, error) {
 	splits := strings.Split(s, "/")
 	if splits[1] != "data" {
 		return nil, fmt.Errorf("not a data request")
@@ -87,7 +115,7 @@ func (c *Ack) Encode() string {
 	return fmt.Sprintf("/ack/%v/%v/", c.Session, c.Length)
 }
 
-func ParseAck(s string) (*Ack, error) {
+func parseAck(s string) (*Ack, error) {
 	splits := strings.Split(s, "/")
 	if splits[1] != "ack" {
 		return nil, fmt.Errorf("not an ack request")
@@ -122,7 +150,7 @@ func (c *Close) Encode() string {
 	return fmt.Sprintf("/close/%v/", c.Session)
 }
 
-func ParseClose(s string) (*Close, error) {
+func parseClose(s string) (*Close, error) {
 	splits := strings.Split(s, "/")
 	if splits[1] != "close" {
 		return nil, fmt.Errorf("not an close request")
