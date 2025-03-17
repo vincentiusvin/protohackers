@@ -7,7 +7,7 @@ import (
 )
 
 func TestConnect(t *testing.T) {
-	in := "/connect/1234567"
+	in := "/connect/1234567/"
 	exp := &lrcp.Connect{
 		Session: 1234567,
 	}
@@ -18,10 +18,14 @@ func TestConnect(t *testing.T) {
 	if !reflect.DeepEqual(c, exp) {
 		t.Fatalf("expected %v got %v", exp, c.Session)
 	}
+	reencode := exp.Encode()
+	if reencode != in {
+		t.Fatalf("expected %v got %v", in, reencode)
+	}
 }
 
 func TestData(t *testing.T) {
-	in := "/data/1234567/0/hello"
+	in := "/data/1234567/0/hello/"
 	exp := &lrcp.Data{
 		Session: 1234567,
 		Pos:     0,
@@ -34,10 +38,14 @@ func TestData(t *testing.T) {
 	if !reflect.DeepEqual(c, exp) {
 		t.Fatalf("expected %v got %v", exp, c.Session)
 	}
+	reencode := exp.Encode()
+	if reencode != in {
+		t.Fatalf("expected %v got %v", in, reencode)
+	}
 }
 
 func TestAck(t *testing.T) {
-	in := "/ack/1234567/1024"
+	in := "/ack/1234567/1024/"
 	exp := &lrcp.Ack{
 		Session: 1234567,
 		Length:  1024,
@@ -49,10 +57,14 @@ func TestAck(t *testing.T) {
 	if !reflect.DeepEqual(c, exp) {
 		t.Fatalf("expected %v got %v", exp, c.Session)
 	}
+	reencode := exp.Encode()
+	if reencode != in {
+		t.Fatalf("expected %v got %v", in, reencode)
+	}
 }
 
 func TestClose(t *testing.T) {
-	in := "/close/1234567"
+	in := "/close/1234567/"
 	exp := &lrcp.Close{
 		Session: 1234567,
 	}
@@ -62,5 +74,9 @@ func TestClose(t *testing.T) {
 	}
 	if !reflect.DeepEqual(c, exp) {
 		t.Fatalf("expected %v got %v", exp, c.Session)
+	}
+	reencode := exp.Encode()
+	if reencode != in {
+		t.Fatalf("expected %v got %v", in, reencode)
 	}
 }

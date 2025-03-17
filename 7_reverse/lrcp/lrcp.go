@@ -10,6 +10,10 @@ type Connect struct {
 	Session uint
 }
 
+func (c *Connect) Encode() string {
+	return fmt.Sprintf("/connect/%v/", c.Session)
+}
+
 func ParseConnect(s string) (*Connect, error) {
 	splits := strings.Split(s, "/")
 	if splits[1] != "connect" {
@@ -32,6 +36,10 @@ type Data struct {
 	Session uint
 	Pos     uint
 	Data    string
+}
+
+func (c *Data) Encode() string {
+	return fmt.Sprintf("/data/%v/%v/%v/", c.Session, c.Pos, c.Data)
 }
 
 func ParseData(s string) (*Data, error) {
@@ -69,6 +77,10 @@ type Ack struct {
 	Length  uint
 }
 
+func (c *Ack) Encode() string {
+	return fmt.Sprintf("/ack/%v/%v/", c.Session, c.Length)
+}
+
 func ParseAck(s string) (*Ack, error) {
 	splits := strings.Split(s, "/")
 	if splits[1] != "ack" {
@@ -98,6 +110,10 @@ func ParseAck(s string) (*Ack, error) {
 
 type Close struct {
 	Session uint
+}
+
+func (c *Close) Encode() string {
+	return fmt.Sprintf("/close/%v/", c.Session)
 }
 
 func ParseClose(s string) (*Close, error) {
