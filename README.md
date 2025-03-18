@@ -72,7 +72,7 @@ Simple state-based parsing might be a better idea.
 
 ## 7
 
-This one is more of an infrastructure challenge instead of domain logic one.
+This one is more of an infrastructure challenge instead of a domain logic one.
 
 Lowered the retransmission timer from 3 secs to 1 sec because the packet loss doesn't seem to be at 25%? Kept getting the 60s timeout.
 
