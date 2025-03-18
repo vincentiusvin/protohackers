@@ -49,6 +49,9 @@ func (c *Connect) GetSession() uint {
 
 func parseConnect(s string) (*Connect, error) {
 	splits := strings.Split(s, "/")
+	if len(splits) < 3 {
+		return nil, fmt.Errorf("invalid syntax")
+	}
 	if splits[1] != "connect" {
 		return nil, fmt.Errorf("not a connect request")
 	}
@@ -85,6 +88,10 @@ func (c *Data) GetSession() uint {
 
 func parseData(s string) (*Data, error) {
 	splits := strings.Split(s, "/")
+	if len(splits) < 4 {
+		return nil, fmt.Errorf("invalid syntax")
+	}
+
 	if splits[1] != "data" {
 		return nil, fmt.Errorf("not a data request")
 	}
@@ -130,6 +137,10 @@ func (c *Ack) GetSession() uint {
 
 func parseAck(s string) (*Ack, error) {
 	splits := strings.Split(s, "/")
+	if len(splits) < 4 {
+		return nil, fmt.Errorf("invalid syntax")
+	}
+
 	if splits[1] != "ack" {
 		return nil, fmt.Errorf("not an ack request")
 	}
@@ -169,6 +180,10 @@ func (c *Close) GetSession() uint {
 
 func parseClose(s string) (*Close, error) {
 	splits := strings.Split(s, "/")
+	if len(splits) < 3 {
+		return nil, fmt.Errorf("invalid syntax")
+	}
+
 	if splits[1] != "close" {
 		return nil, fmt.Errorf("not an close request")
 	}

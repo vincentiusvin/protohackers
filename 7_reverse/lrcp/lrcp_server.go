@@ -62,6 +62,7 @@ func (ls *LRCPServer) process(request string, response func(b []byte) error) {
 	parsed, err := Parse(request)
 	if err != nil {
 		log.Printf("skipped packet %v. err: %v", request, err)
+		return
 	}
 	sid := parsed.GetSession()
 	if ls.sessions[sid] != nil {

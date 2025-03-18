@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"protohackers/7_reverse/lrcp"
 	"strconv"
 )
 
@@ -19,16 +21,22 @@ func main() {
 
 	defer c.Close()
 
+	serv := lrcp.MakeLRCPServer()
+	serv.ListenUDP(c)
+
 	for {
-		ListenLRCP(c)
+		session := serv.Accept()
+		handleSession(session)
 	}
 }
 
-func ListenLRCP(c *net.UDPConn) {
-	b := make([]byte, 1000)
-	_, addr, err := c.ReadFromUDP(b)
+func handleSession(s *lrcp.LRCPSession) {
+	incoming, err := s.Resolve()
 	if err != nil {
-		panic(err)
+		return
 	}
-	log.Println("recv from: ", addr)
+
+	for data := range incoming {
+		fmt.Println(data)
+	}
 }
