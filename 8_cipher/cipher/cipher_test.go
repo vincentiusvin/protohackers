@@ -6,6 +6,6 @@ import (
 )
 
 func TestCipher(t *testing.T) {
-	in := []byte{0x02, 0x00, 0x00}
+	in := []byte{0x01, 0x02, 0x01, 0x03, 0x00}
 	cipher.ParseCipher(in)
 }
