@@ -122,14 +122,37 @@ func parseData(s string) (*Data, error) {
 		return nil, fmt.Errorf("position number is negative: %v", sessionNum)
 	}
 
-	data := dataRaw
-	data = strings.ReplaceAll(data, "\\/", "/")
-	data = strings.ReplaceAll(data, "\\\\", "\\")
+	data := []rune{}
+	escaped := false
+	for _, c := range dataRaw {
+		switch c {
+		case '\\':
+			if escaped {
+				data = append(data, c)
+				escaped = false
+			} else {
+				escaped = true
+			}
+		case '/':
+			if escaped {
+				data = append(data, c)
+				escaped = false
+			} else {
+				return nil, fmt.Errorf("data has too many segments")
+			}
+		default:
+			if escaped {
+				return nil, fmt.Errorf("illegal escaped character")
+			} else {
+				data = append(data, c)
+			}
+		}
+	}
 
 	return &Data{
 		Session: uint(sessionNum),
 		Pos:     uint(posNum),
-		Data:    data,
+		Data:    string(data),
 	}, nil
 }
 

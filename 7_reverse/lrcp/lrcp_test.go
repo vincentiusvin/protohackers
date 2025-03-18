@@ -84,6 +84,10 @@ func TestParsing(t *testing.T) {
 				exp: nil,
 			},
 			{
+				in:  "/data/1234567/0/hello/darkness/my/",
+				exp: nil,
+			},
+			{
 				in: "/data/1234567/0/foo\\/bar\\\\baz/",
 				exp: &lrcp.Data{
 					Session: 1234567,
