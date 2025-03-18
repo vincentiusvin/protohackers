@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"protohackers/7_reverse/lrcp"
@@ -26,7 +25,8 @@ func main() {
 
 	for {
 		session := serv.Accept()
-		handleSession(session)
+		log.Println("connected")
+		go handleSession(session)
 	}
 }
 
@@ -36,7 +36,29 @@ func handleSession(s *lrcp.LRCPSession) {
 		return
 	}
 
-	for data := range incoming {
-		fmt.Println(data)
+	outch := make(chan string)
+
+	go func() {
+		curr := ""
+		for data := range incoming {
+			for _, char := range data {
+				if char == '\n' {
+					outch <- curr
+					curr = ""
+				} else {
+					curr += string(char)
+				}
+			}
+		}
+		close(outch)
+	}()
+
+	for t := range outch {
+		log.Println("Received string", t)
+		res := ""
+		for _, ch := range t {
+			res = string(ch) + res
+		}
+		s.SendData(res + "\n")
 	}
 }
