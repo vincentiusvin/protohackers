@@ -88,15 +88,25 @@ func (c *Data) GetSession() uint {
 }
 
 func parseData(s string) (*Data, error) {
-	splits := strings.Split(s, "/")
-	if len(splits) < 4 {
-		return nil, fmt.Errorf("invalid syntax")
+	curr, found := strings.CutPrefix(s, "/data/")
+	if !found {
+		return nil, fmt.Errorf("not an ack request")
+	}
+	curr, found = strings.CutSuffix(curr, "/")
+	if !found {
+		return nil, fmt.Errorf("not an ack request")
 	}
 
-	if splits[1] != "data" {
-		return nil, fmt.Errorf("not a data request")
+	sesRaw, lenDataRaw, found := strings.Cut(curr, "/")
+	if !found {
+		return nil, fmt.Errorf("not an ack request")
 	}
-	sessionNum, err := strconv.Atoi(splits[2])
+	posRaw, dataRaw, found := strings.Cut(lenDataRaw, "/")
+	if !found {
+		return nil, fmt.Errorf("not an ack request")
+	}
+
+	sessionNum, err := strconv.Atoi(sesRaw)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse session num to int: %w", err)
 	}
@@ -104,7 +114,7 @@ func parseData(s string) (*Data, error) {
 		return nil, fmt.Errorf("session number is negative: %v", sessionNum)
 	}
 
-	posNum, err := strconv.Atoi(splits[3])
+	posNum, err := strconv.Atoi(posRaw)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse position num to int: %w", err)
 	}
@@ -112,7 +122,7 @@ func parseData(s string) (*Data, error) {
 		return nil, fmt.Errorf("position number is negative: %v", sessionNum)
 	}
 
-	data := strings.Join(splits[4:len(splits)-1], "/")
+	data := dataRaw
 	data = strings.ReplaceAll(data, "\\/", "/")
 	data = strings.ReplaceAll(data, "\\\\", "\\")
 
