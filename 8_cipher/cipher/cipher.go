@@ -61,7 +61,7 @@ func (rb reverseBit) execute(bs []byte) []byte {
 		for i := 0; i < 8; i++ {
 			val := (1 << i) & el
 			if val != 0 {
-				num |= (1 << (8 - i))
+				num |= (1 << (7 - i))
 			}
 		}
 		ret[i] = num
