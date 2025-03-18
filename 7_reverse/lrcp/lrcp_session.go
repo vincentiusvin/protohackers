@@ -2,6 +2,7 @@ package lrcp
 
 import (
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -122,16 +123,24 @@ func (ls *LRCPSession) runSender() {
 			default:
 			}
 		case ack := <-ls.ackCh:
-			if ack > uint(len(toSend)) {
+			maxLen := uint(len(toSend))
+			if ack > maxLen {
 				ls.handleClose()
 				return
 			}
 			if ack > sent {
 				sent = ack
+				log.Printf("advancing sent to %v out of %v\n", sent, maxLen)
+			}
+			if sent != maxLen { // immediately send the next one
+				select {
+				case startSending <- struct{}{}:
+				default:
+				}
 			}
 		case <-startSending:
 			currLen := uint(len(toSend))
-			sendingLen := min(sent+1000, currLen)
+			sendingLen := min(sent+800, currLen)
 			if sent == sendingLen {
 				continue
 			}
@@ -141,15 +150,18 @@ func (ls *LRCPSession) runSender() {
 				Pos:     sent,
 				Data:    forward,
 			}
-			ls.sendRaw(data.Encode())
-
-			go func() {
-				time.Sleep(3 * time.Second)
-				select {
-				case startSending <- struct{}{}:
-				default:
-				}
-			}()
+			err := ls.sendRaw(data.Encode())
+			log.Printf("sending bytes %v..%v out of %v\n", sent, sendingLen, currLen)
+			if err != nil {
+				log.Printf("failed to send: %v\n", err)
+			}
+		// the website told us to use 3 seconds but it's too long.
+		// the 60 second timeout will kick in if the packet loss is too high.
+		case <-time.After(1 * time.Second):
+			select {
+			case startSending <- struct{}{}:
+			default:
+			}
 		}
 	}
 }

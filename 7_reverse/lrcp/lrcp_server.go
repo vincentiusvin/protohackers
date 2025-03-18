@@ -1,6 +1,7 @@
 package lrcp
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"strings"
@@ -51,7 +52,7 @@ func (ls *LRCPServer) Listen(list LRCPListener) {
 			sess := list()
 			b, err := sess.Read()
 			if err != nil {
-				panic(err)
+				log.Printf("udp err: %v\n", err)
 			}
 			request := string(b)
 			ls.process(request, sess.Write)
@@ -84,10 +85,13 @@ type LRCPUDPSession struct {
 }
 
 func (lus *LRCPUDPSession) Read() ([]byte, error) {
-	b := make([]byte, 1000)
+	b := make([]byte, 1024)
 	n, addr, err := lus.c.ReadFromUDP(b)
 	if err != nil {
 		return nil, err
+	}
+	if n > 1000 {
+		return nil, fmt.Errorf("udp packet too big")
 	}
 	lus.addr = addr
 	return b[:n], nil
