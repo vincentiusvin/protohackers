@@ -1,11 +1,24 @@
 package lrcp
 
+import (
+	"fmt"
+	"time"
+)
+
+var (
+	errClosedSession = fmt.Errorf("lrcp session closed")
+)
+
 type LRCPSession struct {
+	closed   bool
 	sid      uint                 // session id
 	resolved chan string          // output the ordered string
 	srv      *LRCPServer          // the server that handles us
 	response func(b []byte) error // callback to reply to messages
 	buff     string
+
+	sendCh chan string
+	ackCh  chan uint
 }
 
 func makeLRCPSession(
@@ -13,15 +26,42 @@ func makeLRCPSession(
 	srv *LRCPServer,
 	response func(b []byte) error,
 ) *LRCPSession {
-	return &LRCPSession{
+	s := &LRCPSession{
 		sid:      sid,
 		resolved: make(chan string),
 		srv:      srv,
 		response: response,
+		sendCh:   make(chan string),
+		ackCh:    make(chan uint),
 	}
+	go s.runSender()
+	return s
 }
 
-func (ls *LRCPSession) process(p LRCPPackets) {
+// send data over the LRCP connection
+func (ls *LRCPSession) SendData(s string) error {
+	if ls.closed {
+		return errClosedSession
+	}
+
+	ls.sendCh <- s
+
+	return nil
+}
+
+// get the channel that outputs ordered packets
+func (ls *LRCPSession) Resolve() (chan string, error) {
+	if ls.closed {
+		return nil, errClosedSession
+	}
+	return ls.resolved, nil
+}
+
+func (ls *LRCPSession) sendRaw(s string) error {
+	return ls.response([]byte(s))
+}
+
+func (ls *LRCPSession) handlePacket(p LRCPPackets) {
 	switch v := p.(type) {
 	case *Connect:
 		ls.handleConnect()
@@ -29,6 +69,8 @@ func (ls *LRCPSession) process(p LRCPPackets) {
 		ls.handleData(v)
 	case *Close:
 		ls.handleClose()
+	case *Ack:
+		ls.ackCh <- v.Length
 	}
 }
 
@@ -37,7 +79,7 @@ func (ls *LRCPSession) handleConnect() {
 		Session: ls.sid,
 		Length:  uint(len(ls.buff)),
 	}
-	ls.Send(ack.Encode())
+	ls.sendRaw(ack.Encode())
 }
 
 func (ls *LRCPSession) handleData(v *Data) {
@@ -49,21 +91,65 @@ func (ls *LRCPSession) handleData(v *Data) {
 		Session: ls.sid,
 		Length:  uint(len(ls.buff)),
 	}
-	ls.Send(ack.Encode())
+	ls.sendRaw(ack.Encode())
 }
 
 func (ls *LRCPSession) handleClose() {
+	if ls.closed {
+		return
+	}
 	close(ls.resolved)
 	ack := &Close{
 		Session: ls.sid,
 	}
-	ls.Send(ack.Encode())
+	ls.sendRaw(ack.Encode())
+	ls.srv.Unregister(ls)
+	ls.closed = true
 }
 
-func (ls *LRCPSession) Send(s string) {
-	ls.response([]byte(s))
-}
+func (ls *LRCPSession) runSender() {
+	toSend := ""
+	var sent uint = 0
+	startSending := make(chan struct{}, 1)
 
-func (ls *LRCPSession) Resolve() chan string {
-	return ls.resolved
+	for !ls.closed {
+		select {
+		case send := <-ls.sendCh:
+			toSend += send
+			// probably can code this using a condvar
+			select {
+			case startSending <- struct{}{}:
+			default:
+			}
+		case ack := <-ls.ackCh:
+			if ack > uint(len(toSend)) {
+				ls.handleClose()
+				return
+			}
+			if ack > sent {
+				sent = ack
+			}
+		case <-startSending:
+			currLen := uint(len(toSend))
+			sendingLen := min(sent+1000, currLen)
+			if sent == sendingLen {
+				continue
+			}
+			forward := toSend[sent:sendingLen]
+			data := &Data{
+				Session: ls.sid,
+				Pos:     sent,
+				Data:    forward,
+			}
+			ls.sendRaw(data.Encode())
+
+			go func() {
+				time.Sleep(3 * time.Second)
+				select {
+				case startSending <- struct{}{}:
+				default:
+				}
+			}()
+		}
+	}
 }

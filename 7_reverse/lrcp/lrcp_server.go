@@ -33,6 +33,10 @@ func (ls *LRCPServer) ListenUDP(c *net.UDPConn) {
 	})
 }
 
+func (ls *LRCPServer) Unregister(s *LRCPSession) {
+	delete(ls.sessions, s.sid)
+}
+
 type LRCPListenerSession interface {
 	Read() ([]byte, error)
 	Write([]byte) error
@@ -61,13 +65,13 @@ func (ls *LRCPServer) process(request string, response func(b []byte) error) {
 	}
 	sid := parsed.GetSession()
 	if ls.sessions[sid] != nil {
-		ls.sessions[sid].process(parsed)
+		ls.sessions[sid].handlePacket(parsed)
 	} else {
 		session := makeLRCPSession(sid, ls, response)
-		ls.sessions[sid] = session
-		session.process(parsed)
+		ls.newSession <- session // make sure it is accepted first before registering
 
-		ls.newSession <- session
+		ls.sessions[sid] = session
+		session.handlePacket(parsed)
 	}
 }
 

@@ -1,7 +1,6 @@
 package lrcp_test
 
 import (
-	"fmt"
 	"protohackers/7_reverse/lrcp"
 	"reflect"
 	"testing"
@@ -112,7 +111,7 @@ func (lm *lrcpMock) Write(b []byte) error {
 	return nil
 }
 
-func TestLRCP(t *testing.T) {
+func TestLRCPReceive(t *testing.T) {
 	ls := lrcp.MakeLRCPServer()
 
 	chin := make(chan string)
@@ -125,13 +124,19 @@ func TestLRCP(t *testing.T) {
 		}
 	})
 
+	final := make(chan string)
+
 	go func() {
 		sess := ls.Accept()
 		acc := ""
-		for s := range sess.Resolve() {
+		outch, err := sess.Resolve()
+		if err != nil {
+			panic("lrcp session channel errored unexpectedly")
+		}
+		for s := range outch {
 			acc += s
 		}
-		fmt.Println(acc)
+		final <- acc
 	}()
 
 	chin <- "/connect/1234567/"
@@ -154,5 +159,40 @@ func TestLRCP(t *testing.T) {
 	if <-chout != "/close/1234567/" {
 		t.Fatalf("wrong reply to close")
 	}
+	if <-final != "hellomeong123" {
+		t.Fatalf("wrong assembled string")
+	}
+}
 
+func TestLRCPSend(t *testing.T) {
+	ls := lrcp.MakeLRCPServer()
+
+	chin := make(chan string)
+	chout := make(chan string)
+
+	ls.Listen(func() lrcp.LRCPListenerSession {
+		return &lrcpMock{
+			in:  chin,
+			out: chout,
+		}
+	})
+
+	go func() {
+		sess := ls.Accept()
+		sess.SendData("meong")
+	}()
+
+	chin <- "/connect/1234567/"
+	if <-chout != "/ack/1234567/0/" {
+		t.Fatalf("wrong reply to connect")
+	}
+
+	if <-chout != "/data/1234567/0/meong" {
+		t.Fatalf("wrong reply to connect")
+	}
+
+	chin <- "/close/1234567/"
+	if <-chout != "/close/1234567/" {
+		t.Fatalf("wrong reply to close")
+	}
 }
