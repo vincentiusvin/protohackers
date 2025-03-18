@@ -3,6 +3,7 @@ package lrcp
 import (
 	"log"
 	"net"
+	"strings"
 )
 
 // provides a tcp like interface
@@ -64,6 +65,7 @@ func (ls *LRCPServer) process(request string, response func(b []byte) error) {
 		log.Printf("skipped packet %v. err: %v", request, err)
 		return
 	}
+	log.Printf("parsed %v. got: %T %v", strings.ReplaceAll(request, "\n", ""), parsed, parsed)
 	sid := parsed.GetSession()
 	if ls.sessions[sid] != nil {
 		ls.sessions[sid].handlePacket(parsed)
