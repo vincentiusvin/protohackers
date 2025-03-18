@@ -3,18 +3,27 @@ package cipher
 import "fmt"
 
 type operation interface {
-	execute([]byte) []byte
+	encode([]byte) []byte
+	decode([]byte) []byte
 }
 
-func RunCipher(ciph []byte, input []byte) []byte {
-	fns := parseCipher(ciph)
+func EncodeCipher(ciph []byte, input []byte) []byte {
+	fns := ParseCipher(ciph)
 	for _, c := range fns {
-		input = c.execute(input)
+		input = c.encode(input)
 	}
 	return input
 }
 
-func parseCipher(bs []byte) []operation {
+func DecodeCipher(ciph []byte, input []byte) []byte {
+	fns := ParseCipher(ciph)
+	for _, c := range fns {
+		input = c.decode(input)
+	}
+	return input
+}
+
+func ParseCipher(bs []byte) []operation {
 	input := bs
 	operations := make([]operation, 0)
 
@@ -54,7 +63,7 @@ func getOne[T any](arr []T) (T, []T) {
 
 type reverseBit struct{}
 
-func (rb reverseBit) execute(bs []byte) []byte {
+func (rb reverseBit) encode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
 		var num byte
@@ -69,6 +78,10 @@ func (rb reverseBit) execute(bs []byte) []byte {
 	return ret
 }
 
+func (rb reverseBit) decode(bs []byte) []byte {
+	return rb.encode(bs) // inverse is itself :)
+}
+
 func (rb reverseBit) String() string {
 	return "reversebits"
 }
@@ -77,12 +90,16 @@ type xor struct {
 	n byte
 }
 
-func (xr xor) execute(bs []byte) []byte {
+func (xr xor) encode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
 		ret[i] = el ^ xr.n
 	}
 	return ret
+}
+
+func (xr xor) decode(bs []byte) []byte {
+	return xr.encode(bs) // xor's inverse is itself :)
 }
 
 func (xr xor) String() string {
@@ -91,12 +108,16 @@ func (xr xor) String() string {
 
 type xorpos struct{}
 
-func (xrp xorpos) execute(bs []byte) []byte {
+func (xrp xorpos) encode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
 		ret[i] = el ^ byte(i)
 	}
 	return ret
+}
+
+func (xrp xorpos) decode(bs []byte) []byte {
+	return xrp.encode(bs) // xor's inverse is itself :)
 }
 
 func (xrp xorpos) String() string {
@@ -107,10 +128,20 @@ type add struct {
 	n byte
 }
 
-func (ad add) execute(bs []byte) []byte {
+func (ad add) encode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
 		added := int(el) + int(ad.n)
+		modded := added % 256
+		ret[i] = byte(modded)
+	}
+	return ret
+}
+
+func (ad add) decode(bs []byte) []byte {
+	ret := make([]byte, len(bs))
+	for i, el := range bs {
+		added := int(el) - int(ad.n)
 		modded := added % 256
 		ret[i] = byte(modded)
 	}
@@ -123,10 +154,20 @@ func (ad add) String() string {
 
 type addpos struct{}
 
-func (adp addpos) execute(bs []byte) []byte {
+func (adp addpos) encode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
 		added := int(el) + i
+		modded := added % 256
+		ret[i] = byte(modded)
+	}
+	return ret
+}
+
+func (adp addpos) decode(bs []byte) []byte {
+	ret := make([]byte, len(bs))
+	for i, el := range bs {
+		added := int(el) - i
 		modded := added % 256
 		ret[i] = byte(modded)
 	}

@@ -27,5 +27,4 @@ func main() {
 
 func handleConnection(c net.Conn) {
 	defer c.Close()
-
 }
