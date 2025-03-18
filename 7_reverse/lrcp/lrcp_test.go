@@ -14,12 +14,12 @@ func TestParsing(t *testing.T) {
 
 	runParse := func(t *testing.T, cs []parseCases) {
 		for _, c := range cs {
-			out, err := lrcp.Parse(c.in)
-			if err != nil {
-				t.Fatal(err)
-			}
+			out, _ := lrcp.Parse(c.in)
 			if !reflect.DeepEqual(out, c.exp) {
 				t.Fatalf("expected %v got %v", c.exp, out)
+			}
+			if c.exp == nil {
+				continue
 			}
 			reencode := c.exp.Encode()
 			if reencode != c.in {
@@ -36,6 +36,10 @@ func TestParsing(t *testing.T) {
 					Session: 1234567,
 				},
 			},
+			{
+				in:  "/connect/1234567/ayambakar",
+				exp: nil,
+			},
 		}
 		runParse(t, connectCases)
 	})
@@ -49,11 +53,15 @@ func TestParsing(t *testing.T) {
 					Length:  1024,
 				},
 			},
+			{
+				in:  "/ack/1234567/nasigoreng",
+				exp: nil,
+			},
 		}
 		runParse(t, ackCases)
 	})
 
-	t.Run("ack cases", func(t *testing.T) {
+	t.Run("data cases", func(t *testing.T) {
 		dataCases := []parseCases{
 			{
 				in: "/data/1234567/0//",
@@ -70,6 +78,10 @@ func TestParsing(t *testing.T) {
 					Pos:     0,
 					Data:    "hello",
 				},
+			},
+			{
+				in:  "/data/1234567/0/hello",
+				exp: nil,
 			},
 			{
 				in: "/data/1234567/0/foo\\/bar\\\\baz/",
@@ -90,6 +102,10 @@ func TestParsing(t *testing.T) {
 				exp: &lrcp.Close{
 					Session: 1234567,
 				},
+			},
+			{
+				in:  "/close/1234567",
+				exp: nil,
 			},
 		}
 		runParse(t, closeCases)
@@ -187,7 +203,7 @@ func TestLRCPSend(t *testing.T) {
 		t.Fatalf("wrong reply to connect")
 	}
 
-	if <-chout != "/data/1234567/0/meong" {
+	if <-chout != "/data/1234567/0/meong/" {
 		t.Fatalf("wrong reply to connect")
 	}
 

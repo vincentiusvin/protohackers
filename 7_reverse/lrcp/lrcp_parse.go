@@ -48,14 +48,15 @@ func (c *Connect) GetSession() uint {
 }
 
 func parseConnect(s string) (*Connect, error) {
-	splits := strings.Split(s, "/")
-	if len(splits) < 3 {
-		return nil, fmt.Errorf("invalid syntax")
-	}
-	if splits[1] != "connect" {
+	curr, found := strings.CutPrefix(s, "/connect/")
+	if !found {
 		return nil, fmt.Errorf("not a connect request")
 	}
-	sessionNum, err := strconv.Atoi(splits[2])
+	curr, found = strings.CutSuffix(curr, "/")
+	if !found {
+		return nil, fmt.Errorf("not a connect request")
+	}
+	sessionNum, err := strconv.Atoi(curr)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse session num to int: %w", err)
 	}
@@ -136,15 +137,21 @@ func (c *Ack) GetSession() uint {
 }
 
 func parseAck(s string) (*Ack, error) {
-	splits := strings.Split(s, "/")
-	if len(splits) < 4 {
-		return nil, fmt.Errorf("invalid syntax")
-	}
-
-	if splits[1] != "ack" {
+	curr, found := strings.CutPrefix(s, "/ack/")
+	if !found {
 		return nil, fmt.Errorf("not an ack request")
 	}
-	sessionNum, err := strconv.Atoi(splits[2])
+	curr, found = strings.CutSuffix(curr, "/")
+	if !found {
+		return nil, fmt.Errorf("not an ack request")
+	}
+
+	sesRaw, lenRaw, found := strings.Cut(curr, "/")
+	if !found {
+		return nil, fmt.Errorf("not an ack request")
+	}
+
+	sessionNum, err := strconv.Atoi(sesRaw)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse session num to int: %w", err)
 	}
@@ -152,7 +159,7 @@ func parseAck(s string) (*Ack, error) {
 		return nil, fmt.Errorf("session number is negative: %v", sessionNum)
 	}
 
-	lenNum, err := strconv.Atoi(splits[3])
+	lenNum, err := strconv.Atoi(lenRaw)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse length num to int: %w", err)
 	}
@@ -179,15 +186,15 @@ func (c *Close) GetSession() uint {
 }
 
 func parseClose(s string) (*Close, error) {
-	splits := strings.Split(s, "/")
-	if len(splits) < 3 {
-		return nil, fmt.Errorf("invalid syntax")
-	}
-
-	if splits[1] != "close" {
+	curr, found := strings.CutPrefix(s, "/close/")
+	if !found {
 		return nil, fmt.Errorf("not an close request")
 	}
-	sessionNum, err := strconv.Atoi(splits[2])
+	curr, found = strings.CutSuffix(curr, "/")
+	if !found {
+		return nil, fmt.Errorf("not an close request")
+	}
+	sessionNum, err := strconv.Atoi(curr)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse session num to int: %w", err)
 	}
