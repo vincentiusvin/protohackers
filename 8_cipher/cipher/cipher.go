@@ -6,7 +6,15 @@ type operation interface {
 	execute([]byte) []byte
 }
 
-func ParseCipher(bs []byte) {
+func RunCipher(ciph []byte, input []byte) []byte {
+	fns := parseCipher(ciph)
+	for _, c := range fns {
+		input = c.execute(input)
+	}
+	return input
+}
+
+func parseCipher(bs []byte) []operation {
 	input := bs
 	operations := make([]operation, 0)
 
@@ -32,7 +40,7 @@ func ParseCipher(bs []byte) {
 		}
 	}
 
-	fmt.Println(operations)
+	return operations
 }
 
 func getOne[T any](arr []T) (T, []T) {
@@ -53,7 +61,7 @@ func (rb reverseBit) execute(bs []byte) []byte {
 		for i := 0; i < 8; i++ {
 			val := (1 << i) & el
 			if val != 0 {
-				num &= (1 << (8 - i))
+				num |= (1 << (8 - i))
 			}
 		}
 		ret[i] = num
