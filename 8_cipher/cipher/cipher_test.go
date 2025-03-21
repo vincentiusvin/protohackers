@@ -53,3 +53,22 @@ func TestCipher(t *testing.T) {
 		}
 	}
 }
+
+// should continue from the position of the whole stream, not the array
+func TestCipherStream(t *testing.T) {
+	ciphb := []byte{0x05}
+	in1 := []byte{0x68, 0x65, 0x6c}
+	exp1 := []byte{0x68, 0x66, 0x6e}
+	in2 := []byte{0x6c, 0x6f}
+	exp2 := []byte{0x6f, 0x73}
+
+	ciph := cipher.ParseCipher(ciphb)
+	out1 := ciph.Encode(in1)
+	if !reflect.DeepEqual(out1, exp1) {
+		t.Fatalf("cipher wrong. exp: %v, got: %v", exp1, out1)
+	}
+	out2 := ciph.Encode(in2)
+	if !reflect.DeepEqual(out2, exp2) {
+		t.Fatalf("cipher wrong. exp: %v, got: %v", exp2, out2)
+	}
+}

@@ -43,13 +43,13 @@ func ParseCipher(bs []byte) Cipher {
 			xorByte, input = getOne(input)
 			operations = append(operations, xor{n: xorByte})
 		case 0x03:
-			operations = append(operations, xorpos{})
+			operations = append(operations, &xorpos{})
 		case 0x04:
 			var addByte byte
 			addByte, input = getOne(input)
 			operations = append(operations, add{n: addByte})
 		case 0x05:
-			operations = append(operations, addpos{})
+			operations = append(operations, &addpos{})
 		}
 	}
 
@@ -112,21 +112,31 @@ func (xr xor) String() string {
 	return fmt.Sprintf("xor(%v)", xr.n)
 }
 
-type xorpos struct{}
+type xorpos struct {
+	encodePos int
+	decodePos int
+}
 
-func (xrp xorpos) Encode(bs []byte) []byte {
+func (xrp *xorpos) Encode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
-		ret[i] = el ^ byte(i)
+		ret[i] = el ^ byte(xrp.encodePos)
+		xrp.encodePos += 1
 	}
 	return ret
 }
 
-func (xrp xorpos) Decode(bs []byte) []byte {
-	return xrp.Encode(bs) // xor's inverse is itself :)
+// xor's inverse is itself :)
+func (xrp *xorpos) Decode(bs []byte) []byte {
+	ret := make([]byte, len(bs))
+	for i, el := range bs {
+		ret[i] = el ^ byte(xrp.decodePos)
+		xrp.decodePos += 1
+	}
+	return ret
 }
 
-func (xrp xorpos) String() string {
+func (xrp *xorpos) String() string {
 	return "xorpos"
 }
 
@@ -158,28 +168,33 @@ func (ad add) String() string {
 	return fmt.Sprintf("add(%v)", ad.n)
 }
 
-type addpos struct{}
+type addpos struct {
+	encodePos int
+	decodePos int
+}
 
-func (adp addpos) Encode(bs []byte) []byte {
+func (adp *addpos) Encode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
-		added := int(el) + i
+		added := int(el) + adp.encodePos
 		modded := added % 256
 		ret[i] = byte(modded)
+		adp.encodePos += 1
 	}
 	return ret
 }
 
-func (adp addpos) Decode(bs []byte) []byte {
+func (adp *addpos) Decode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
-		added := int(el) - i
+		added := int(el) - adp.decodePos
 		modded := added % 256
 		ret[i] = byte(modded)
+		adp.decodePos += 1
 	}
 	return ret
 }
 
-func (adp addpos) String() string {
+func (adp *addpos) String() string {
 	return "addpos"
 }
