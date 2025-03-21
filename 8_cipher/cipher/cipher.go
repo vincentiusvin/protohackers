@@ -177,7 +177,7 @@ func (xrp *xorpos) Decode(bs []byte) []byte {
 }
 
 func (xrp *xorpos) String() string {
-	return "xorpos"
+	return fmt.Sprintf("xorpos(dec:%v,enc:%v)", xrp.decodePos, xrp.encodePos)
 }
 
 type add struct {
@@ -236,5 +236,5 @@ func (adp *addpos) Decode(bs []byte) []byte {
 }
 
 func (adp *addpos) String() string {
-	return "addpos"
+	return fmt.Sprintf("addpos(dec:%v,enc:%v)", adp.decodePos, adp.encodePos)
 }
