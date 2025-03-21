@@ -43,19 +43,19 @@ func handleConnection(c net.Conn) {
 	ciph := cipher.ParseCipher(ciphB)
 	dec := cipher.ApplyCipherDecode(ciph, r)
 	r_decoded := bufio.NewReader(dec)
+	log.Printf("cipher: %v\n", ciph)
 
 	for {
-		decoded, err := r_decoded.ReadBytes('\n')
+		decoded, err := r_decoded.ReadString('\n')
 		if err != nil {
 			log.Println(err)
 			return
 		}
+		decoded = decoded[:len(decoded)-1]
 		log.Printf("Decoded: %v", decoded)
 
-		decodedResult := string(decoded)
-
 		maxNum, maxRes := 0, ""
-		for _, s := range strings.Split(decodedResult, ",") {
+		for _, s := range strings.Split(decoded, ",") {
 			numRaw, _, found := strings.Cut(s, "x")
 			if !found {
 				panic(fmt.Errorf("failed to find number on decoded string"))
