@@ -1,6 +1,9 @@
 package cipher_test
 
 import (
+	"bufio"
+	"bytes"
+	"fmt"
 	"protohackers/8_cipher/cipher"
 	"reflect"
 	"testing"
@@ -38,6 +41,11 @@ func TestCipher(t *testing.T) {
 			in:   []byte{0x68, 0x65, 0x6c, 0x6c, 0x6f},
 			exp:  []byte{0x68, 0x66, 0x6e, 0x6f, 0x73},
 		},
+		{
+			ciph: []byte{0x02, 0x01, 0x01, 0x00},
+			in:   []byte{0x68, 0x65, 0x6c, 0x6c, 0x6f},
+			exp:  []byte{0x96, 0x26, 0xb6, 0xb6, 0x76},
+		},
 	}
 
 	for _, c := range cases {
@@ -67,8 +75,48 @@ func TestCipherStream(t *testing.T) {
 	if !reflect.DeepEqual(out1, exp1) {
 		t.Fatalf("cipher wrong. exp: %v, got: %v", exp1, out1)
 	}
+	inv1 := ciph.Decode(out1)
+	if !reflect.DeepEqual(inv1, in1) {
+		t.Fatalf("cipher wrong. exp: %v, got: %v", in1, inv1)
+	}
 	out2 := ciph.Encode(in2)
 	if !reflect.DeepEqual(out2, exp2) {
 		t.Fatalf("cipher wrong. exp: %v, got: %v", exp2, out2)
 	}
+	inv2 := ciph.Decode(out2)
+	if !reflect.DeepEqual(inv2, in2) {
+		t.Fatalf("cipher wrong. exp: %v, got: %v", in2, inv2)
+	}
+}
+
+func TestReader(t *testing.T) {
+	ciphB := []byte{0x02, 0x7b, 0x05, 0x01, 0x00}
+	in := []byte{
+		0xf2,
+		0x20,
+		0xba,
+		0x44,
+		0x18,
+		0x84,
+		0xba,
+		0xaa,
+		0xd0,
+		0x26,
+		0x44,
+		0xa4,
+		0xa8,
+		0x7e,
+	}
+
+	ciph := cipher.ParseCipher(ciphB)
+	ciph.Decode(in)
+
+	inBuf := bytes.NewBuffer(in)
+	decodedIn := cipher.ApplyCipherDecode(ciph, inBuf)
+	decodedR := bufio.NewReader(decodedIn)
+	res, err := decodedR.ReadBytes('\n')
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(string(res))
 }

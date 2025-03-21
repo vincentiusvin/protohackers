@@ -46,10 +46,15 @@ func (cc *combinedCipher) Encode(b []byte) []byte {
 
 func (cc *combinedCipher) Decode(b []byte) []byte {
 	input := b
-	for _, c := range cc.operations {
+	for i := len(cc.operations) - 1; i >= 0; i-- {
+		c := cc.operations[i]
 		input = c.Decode(input)
 	}
 	return input
+}
+
+func (cc *combinedCipher) String() string {
+	return fmt.Sprint(cc.operations)
 }
 
 func ParseCipher(bs []byte) Cipher {
