@@ -23,7 +23,7 @@ func (cr *cipherReader) Read(p []byte) (n int, err error) {
 func ApplyCipherDecode(c Cipher, r io.Reader) io.Reader {
 	return &cipherReader{
 		r:  r,
-		fn: c.Encode,
+		fn: c.Decode,
 	}
 }
 

@@ -3,7 +3,6 @@ package cipher_test
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"protohackers/8_cipher/cipher"
 	"reflect"
 	"testing"
@@ -91,32 +90,19 @@ func TestCipherStream(t *testing.T) {
 
 func TestReader(t *testing.T) {
 	ciphB := []byte{0x02, 0x7b, 0x05, 0x01, 0x00}
-	in := []byte{
-		0xf2,
-		0x20,
-		0xba,
-		0x44,
-		0x18,
-		0x84,
-		0xba,
-		0xaa,
-		0xd0,
-		0x26,
-		0x44,
-		0xa4,
-		0xa8,
-		0x7e,
-	}
+	in := []byte{0xf2, 0x20, 0xba, 0x44, 0x18, 0x84, 0xba, 0xaa, 0xd0, 0x26, 0x44, 0xa4, 0xa8, 0x7e}
+	exp := "4x dog,5x car\n"
 
 	ciph := cipher.ParseCipher(ciphB)
-	ciph.Decode(in)
-
 	inBuf := bytes.NewBuffer(in)
 	decodedIn := cipher.ApplyCipherDecode(ciph, inBuf)
 	decodedR := bufio.NewReader(decodedIn)
-	res, err := decodedR.ReadBytes('\n')
+	out, err := decodedR.ReadString('\n')
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(string(res))
+
+	if exp != out {
+		t.Fatalf("cipher reader wrong result. exp %v got %v", exp, out)
+	}
 }
