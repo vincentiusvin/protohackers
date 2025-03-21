@@ -1,6 +1,31 @@
 package cipher
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
+
+type cipherReader struct {
+	r  io.Reader
+	fn func([]byte) []byte
+}
+
+func (cr *cipherReader) Read(p []byte) (n int, err error) {
+	n, err = cr.r.Read(p)
+	if err != nil {
+		return n, err
+	}
+	enc := cr.fn(p)
+	copy(p, enc)
+	return n, err
+}
+
+func ApplyCipherDecode(c Cipher, r io.Reader) io.Reader {
+	return &cipherReader{
+		r:  r,
+		fn: c.Encode,
+	}
+}
 
 type Cipher interface {
 	Encode([]byte) []byte
