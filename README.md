@@ -77,3 +77,11 @@ This one is more of an infrastructure challenge instead of a domain logic one.
 Lowered the retransmission timer from 3 secs to 1 sec because the packet loss doesn't seem to be at 25%? Kept getting the 60s timeout.
 
 Might be a skill issue on my part.
+
+## 8
+
+Relatively more simple than the last two challanges.
+
+Tried implementing the decoding as an io.Reader.
+
+Tried the delve debugger and found out that bufio.Reader will return found errors after a successful parse.

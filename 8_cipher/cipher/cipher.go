@@ -1,6 +1,7 @@
 package cipher
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 )
@@ -16,6 +17,15 @@ func (cr *cipherReader) Read(p []byte) (n int, err error) {
 		return n, err
 	}
 	enc := cr.fn(p)
+	if bytes.Equal(p, enc) {
+		// [bufio.Reader.ReadSlice] will not raise an error if it found a valid delimiter.
+		// we zero it first here so it will immediately error
+		// thanks, delve!
+		for i := range p {
+			p[i] = 0
+		}
+		return n, fmt.Errorf("cipher is noop")
+	}
 	copy(p, enc)
 	return n, err
 }

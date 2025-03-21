@@ -106,3 +106,17 @@ func TestReader(t *testing.T) {
 		t.Fatalf("cipher reader wrong result. exp %v got %v", exp, out)
 	}
 }
+
+func TestReaderNoop(t *testing.T) {
+	ciphB := []byte{0x00}
+	in := []byte("cat\n")
+
+	ciph := cipher.ParseCipher(ciphB)
+	inBuf := bytes.NewBuffer(in)
+	decodedIn := cipher.ApplyCipherDecode(ciph, inBuf)
+	decodedR := bufio.NewReader(decodedIn)
+	_, err := decodedR.ReadString('\n')
+	if err == nil {
+		t.Fatal("expected an error for noop ciphers")
+	}
+}
