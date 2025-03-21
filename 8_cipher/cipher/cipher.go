@@ -2,30 +2,34 @@ package cipher
 
 import "fmt"
 
-type operation interface {
-	encode([]byte) []byte
-	decode([]byte) []byte
+type Cipher interface {
+	Encode([]byte) []byte
+	Decode([]byte) []byte
 }
 
-func EncodeCipher(ciph []byte, input []byte) []byte {
-	fns := ParseCipher(ciph)
-	for _, c := range fns {
-		input = c.encode(input)
+type combinedCipher struct {
+	operations []Cipher
+}
+
+func (cc *combinedCipher) Encode(b []byte) []byte {
+	input := b
+	for _, c := range cc.operations {
+		input = c.Encode(input)
 	}
 	return input
 }
 
-func DecodeCipher(ciph []byte, input []byte) []byte {
-	fns := ParseCipher(ciph)
-	for _, c := range fns {
-		input = c.decode(input)
+func (cc *combinedCipher) Decode(b []byte) []byte {
+	input := b
+	for _, c := range cc.operations {
+		input = c.Decode(input)
 	}
 	return input
 }
 
-func ParseCipher(bs []byte) []operation {
+func ParseCipher(bs []byte) Cipher {
 	input := bs
-	operations := make([]operation, 0)
+	operations := make([]Cipher, 0)
 
 	for input != nil {
 		var currByte byte
@@ -49,7 +53,9 @@ func ParseCipher(bs []byte) []operation {
 		}
 	}
 
-	return operations
+	return &combinedCipher{
+		operations: operations,
+	}
 }
 
 func getOne[T any](arr []T) (T, []T) {
@@ -63,7 +69,7 @@ func getOne[T any](arr []T) (T, []T) {
 
 type reverseBit struct{}
 
-func (rb reverseBit) encode(bs []byte) []byte {
+func (rb reverseBit) Encode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
 		var num byte
@@ -78,8 +84,8 @@ func (rb reverseBit) encode(bs []byte) []byte {
 	return ret
 }
 
-func (rb reverseBit) decode(bs []byte) []byte {
-	return rb.encode(bs) // inverse is itself :)
+func (rb reverseBit) Decode(bs []byte) []byte {
+	return rb.Encode(bs) // inverse is itself :)
 }
 
 func (rb reverseBit) String() string {
@@ -90,7 +96,7 @@ type xor struct {
 	n byte
 }
 
-func (xr xor) encode(bs []byte) []byte {
+func (xr xor) Encode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
 		ret[i] = el ^ xr.n
@@ -98,8 +104,8 @@ func (xr xor) encode(bs []byte) []byte {
 	return ret
 }
 
-func (xr xor) decode(bs []byte) []byte {
-	return xr.encode(bs) // xor's inverse is itself :)
+func (xr xor) Decode(bs []byte) []byte {
+	return xr.Encode(bs) // xor's inverse is itself :)
 }
 
 func (xr xor) String() string {
@@ -108,7 +114,7 @@ func (xr xor) String() string {
 
 type xorpos struct{}
 
-func (xrp xorpos) encode(bs []byte) []byte {
+func (xrp xorpos) Encode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
 		ret[i] = el ^ byte(i)
@@ -116,8 +122,8 @@ func (xrp xorpos) encode(bs []byte) []byte {
 	return ret
 }
 
-func (xrp xorpos) decode(bs []byte) []byte {
-	return xrp.encode(bs) // xor's inverse is itself :)
+func (xrp xorpos) Decode(bs []byte) []byte {
+	return xrp.Encode(bs) // xor's inverse is itself :)
 }
 
 func (xrp xorpos) String() string {
@@ -128,7 +134,7 @@ type add struct {
 	n byte
 }
 
-func (ad add) encode(bs []byte) []byte {
+func (ad add) Encode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
 		added := int(el) + int(ad.n)
@@ -138,7 +144,7 @@ func (ad add) encode(bs []byte) []byte {
 	return ret
 }
 
-func (ad add) decode(bs []byte) []byte {
+func (ad add) Decode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
 		added := int(el) - int(ad.n)
@@ -154,7 +160,7 @@ func (ad add) String() string {
 
 type addpos struct{}
 
-func (adp addpos) encode(bs []byte) []byte {
+func (adp addpos) Encode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
 		added := int(el) + i
@@ -164,7 +170,7 @@ func (adp addpos) encode(bs []byte) []byte {
 	return ret
 }
 
-func (adp addpos) decode(bs []byte) []byte {
+func (adp addpos) Decode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
 		added := int(el) - i

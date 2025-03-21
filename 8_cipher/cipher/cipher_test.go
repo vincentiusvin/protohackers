@@ -41,12 +41,13 @@ func TestCipher(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		out := cipher.EncodeCipher(c.ciph, c.in)
+		ciph := cipher.ParseCipher(c.ciph)
+		out := ciph.Encode(c.in)
 		if !reflect.DeepEqual(out, c.exp) {
 			t.Fatalf("cipher wrong. exp: %v, got: %v", c.exp, out)
 		}
 
-		outRev := cipher.DecodeCipher(c.ciph, out)
+		outRev := ciph.Decode(out)
 		if !reflect.DeepEqual(outRev, c.in) {
 			t.Fatalf("cipher reversal wrong. exp: %v, got: %v", c.in, outRev)
 		}
