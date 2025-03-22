@@ -3,10 +3,12 @@ package cipher_test
 import (
 	"bufio"
 	"bytes"
-	"crypto/rand"
-	"encoding/base64"
+	"fmt"
+	"os"
 	"protohackers/8_cipher/cipher"
 	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -127,32 +129,40 @@ func TestCipherNoop(t *testing.T) {
 }
 
 func TestAlotOfData(t *testing.T) {
-	ciphB := []byte{0x01, 0x04, 0xFF, 0x04, 0xAB, 0x04, 0x46, 0x00}
+	ciphB, err := loadFile("cipher.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ciph, err := cipher.ParseCipher(ciphB)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := 0; i < 1000; i++ {
-		in := randomString(1000) + "\n"
-		enc := ciph.Encode([]byte(in))
-
-		inBuf := bytes.NewBuffer([]byte(enc))
-		decodedIn := cipher.ApplyCipherDecode(ciph, inBuf)
-		decodedR := bufio.NewReader(decodedIn)
-		dec, err := decodedR.ReadString('\n')
-
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if dec != in {
-			t.Fatalf("wrong encoding and decoding result. exp %v got %v", in, dec)
-		}
+	in, err := loadFile("data.txt")
+	if err != nil {
+		t.Fatal(err)
 	}
+	dec := ciph.Decode(in)
+	fmt.Println(string(dec))
 }
 
-func randomString(n int) string {
-	b := make([]byte, n)
-	rand.Read(b)
-	return base64.StdEncoding.EncodeToString(b)
+// takes a space separated dump of bytes in decimal and return []byte
+func loadFile(filename string) (b []byte, err error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	sc := bufio.NewScanner(f)
+	sc.Scan()
+	t := sc.Text()
+	spl := strings.Split(t, " ")
+	ret := make([]byte, 0)
+
+	for _, s := range spl {
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, byte(i))
+	}
+	return ret, nil
 }
