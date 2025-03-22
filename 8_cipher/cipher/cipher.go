@@ -16,7 +16,7 @@ func (cr *cipherReader) Read(p []byte) (n int, err error) {
 	if err != nil {
 		return n, err
 	}
-	enc := cr.fn(p)
+	enc := cr.fn(p[:n])
 	copy(p, enc)
 	return n, err
 }

@@ -3,12 +3,8 @@ package cipher_test
 import (
 	"bufio"
 	"bytes"
-	"fmt"
-	"os"
 	"protohackers/8_cipher/cipher"
 	"reflect"
-	"strconv"
-	"strings"
 	"testing"
 )
 
@@ -126,43 +122,4 @@ func TestCipherNoop(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error for noop ciphers")
 	}
-}
-
-func TestMultibyteEncoding(t *testing.T) {
-	ciphB, err := loadFile("cipher.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	ciph, err := cipher.ParseCipher(ciphB)
-	if err != nil {
-		t.Fatal(err)
-	}
-	in, err := loadFile("data.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	acc := ciph.Decode(in)
-	fmt.Println(string(acc[8100:8200]))
-}
-
-// takes a space separated dump of bytes in decimal and return []byte
-func loadFile(filename string) (b []byte, err error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	sc := bufio.NewScanner(f)
-	sc.Scan()
-	t := sc.Text()
-	spl := strings.Split(t, " ")
-	ret := make([]byte, 0)
-
-	for _, s := range spl {
-		i, err := strconv.Atoi(s)
-		if err != nil {
-			return nil, err
-		}
-		ret = append(ret, byte(i))
-	}
-	return ret, nil
 }

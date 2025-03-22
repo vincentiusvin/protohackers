@@ -10,7 +10,7 @@ Done:
 - [x] 5 - Mob in the Middle
 - [x] 6 - Speed Daemon
 - [x] 7 - Line Reversal
-- [ ] 8 - Insecure Sockets Layer
+- [x] 8 - Insecure Sockets Layer
 
 # Running
 
@@ -83,5 +83,3 @@ Might be a skill issue on my part.
 Relatively more simple than the last two challanges.
 
 Tried implementing the decoding as an io.Reader.
-
-Got a bug when doing the noop thing. Tried the delve debugger and found out that bufio.Reader will return found errors AFTER a successful parse. Had to trick it error first instead of suceeding first.
