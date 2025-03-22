@@ -199,9 +199,7 @@ type add struct {
 func (ad add) Encode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
-		added := int(el) + int(ad.n)
-		modded := added % 256
-		ret[i] = byte(modded)
+		ret[i] = el + ad.n
 	}
 	return ret
 }
@@ -209,9 +207,7 @@ func (ad add) Encode(bs []byte) []byte {
 func (ad add) Decode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
-		added := int(el) - int(ad.n)
-		modded := added % 256
-		ret[i] = byte(modded)
+		ret[i] = el - ad.n
 	}
 	return ret
 }
@@ -228,9 +224,7 @@ type addpos struct {
 func (adp *addpos) Encode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
-		added := int(el) + adp.encodePos
-		modded := added % 256
-		ret[i] = byte(modded)
+		ret[i] = el + byte(adp.encodePos)
 		adp.encodePos += 1
 	}
 	return ret
@@ -239,9 +233,7 @@ func (adp *addpos) Encode(bs []byte) []byte {
 func (adp *addpos) Decode(bs []byte) []byte {
 	ret := make([]byte, len(bs))
 	for i, el := range bs {
-		added := int(el) - adp.decodePos
-		modded := added % 256
-		ret[i] = byte(modded)
+		ret[i] = el - byte(adp.decodePos)
 		adp.decodePos += 1
 	}
 	return ret

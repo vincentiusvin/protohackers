@@ -128,7 +128,7 @@ func TestCipherNoop(t *testing.T) {
 	}
 }
 
-func TestAlotOfData(t *testing.T) {
+func TestMultibyteEncoding(t *testing.T) {
 	ciphB, err := loadFile("cipher.txt")
 	if err != nil {
 		t.Fatal(err)
@@ -141,8 +141,8 @@ func TestAlotOfData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dec := ciph.Decode(in)
-	fmt.Println(string(dec))
+	acc := ciph.Decode(in)
+	fmt.Println(string(acc[8100:8200]))
 }
 
 // takes a space separated dump of bytes in decimal and return []byte
