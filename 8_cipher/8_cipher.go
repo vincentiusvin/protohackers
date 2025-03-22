@@ -45,7 +45,11 @@ func handleConnection(c net.Conn) {
 		return
 	}
 
-	ciph := cipher.ParseCipher(ciphB)
+	ciph, err := cipher.ParseCipher(ciphB)
+	if err != nil {
+		log("%v", err)
+		return
+	}
 	dec := cipher.ApplyCipherDecode(ciph, r)
 	r_decoded := bufio.NewReader(dec)
 	log("cipher: %v\n", ciph)

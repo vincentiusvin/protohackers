@@ -84,4 +84,4 @@ Relatively more simple than the last two challanges.
 
 Tried implementing the decoding as an io.Reader.
 
-Tried the delve debugger and found out that bufio.Reader will return found errors after a successful parse.
+Got a bug when doing the noop thing. Tried the delve debugger and found out that bufio.Reader will return found errors AFTER a successful parse. Had to trick it error first instead of suceeding first.

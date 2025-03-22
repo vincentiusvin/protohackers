@@ -17,15 +17,6 @@ func (cr *cipherReader) Read(p []byte) (n int, err error) {
 		return n, err
 	}
 	enc := cr.fn(p)
-	if bytes.Equal(p, enc) {
-		// [bufio.Reader.ReadSlice] will not raise an error if it found a valid delimiter.
-		// we zero it first here so it will immediately error
-		// thanks, delve!
-		for i := range p {
-			p[i] = 0
-		}
-		return n, fmt.Errorf("cipher is noop")
-	}
 	copy(p, enc)
 	return n, err
 }
@@ -48,8 +39,9 @@ type combinedCipher struct {
 
 func (cc *combinedCipher) Encode(b []byte) []byte {
 	input := b
-	for _, c := range cc.operations {
+	for i, c := range cc.operations {
 		input = c.Encode(input)
+		fmt.Println(i, input)
 	}
 	return input
 }
@@ -67,9 +59,10 @@ func (cc *combinedCipher) String() string {
 	return fmt.Sprint(cc.operations)
 }
 
-func ParseCipher(bs []byte) Cipher {
+func ParseCipher(bs []byte) (Cipher, error) {
 	input := bs
 	operations := make([]Cipher, 0)
+	copyForTesting := make([]Cipher, 0) // to prevent mutations
 
 	for input != nil {
 		var currByte byte
@@ -78,24 +71,44 @@ func ParseCipher(bs []byte) Cipher {
 		switch currByte {
 		case 0x01:
 			operations = append(operations, reverseBit{})
+			copyForTesting = append(copyForTesting, reverseBit{})
 		case 0x02:
 			var xorByte byte
 			xorByte, input = getOne(input)
 			operations = append(operations, xor{n: xorByte})
+			copyForTesting = append(copyForTesting, xor{n: xorByte})
 		case 0x03:
 			operations = append(operations, &xorpos{})
+			copyForTesting = append(copyForTesting, &xorpos{})
 		case 0x04:
 			var addByte byte
 			addByte, input = getOne(input)
 			operations = append(operations, add{n: addByte})
+			copyForTesting = append(copyForTesting, add{n: addByte})
 		case 0x05:
 			operations = append(operations, &addpos{})
+			copyForTesting = append(copyForTesting, &addpos{})
 		}
+	}
+
+	testCipher := &combinedCipher{
+		operations: copyForTesting,
+	}
+	if isCipherNoop(testCipher) {
+		return nil, fmt.Errorf("cipher is noop")
 	}
 
 	return &combinedCipher{
 		operations: operations,
-	}
+	}, nil
+}
+
+// Test if cipher is noop.
+// THIS MUTATES THE CIPHER
+func isCipherNoop(c Cipher) bool {
+	in := []byte{0x01, 0x02, 0x03, 0x04}
+	out := c.Encode(in)
+	return bytes.Equal(in, out)
 }
 
 func getOne[T any](arr []T) (T, []T) {

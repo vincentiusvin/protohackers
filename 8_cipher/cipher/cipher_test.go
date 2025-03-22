@@ -48,7 +48,10 @@ func TestCipher(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		ciph := cipher.ParseCipher(c.ciph)
+		ciph, err := cipher.ParseCipher(c.ciph)
+		if err != nil {
+			t.Fatal(err)
+		}
 		out := ciph.Encode(c.in)
 		if !reflect.DeepEqual(out, c.exp) {
 			t.Fatalf("cipher wrong. exp: %v, got: %v", c.exp, out)
@@ -69,7 +72,10 @@ func TestCipherStream(t *testing.T) {
 	in2 := []byte{0x6c, 0x6f}
 	exp2 := []byte{0x6f, 0x73}
 
-	ciph := cipher.ParseCipher(ciphb)
+	ciph, err := cipher.ParseCipher(ciphb)
+	if err != nil {
+		t.Fatal(err)
+	}
 	out1 := ciph.Encode(in1)
 	if !reflect.DeepEqual(out1, exp1) {
 		t.Fatalf("cipher wrong. exp: %v, got: %v", exp1, out1)
@@ -93,7 +99,10 @@ func TestReader(t *testing.T) {
 	in := []byte{0xf2, 0x20, 0xba, 0x44, 0x18, 0x84, 0xba, 0xaa, 0xd0, 0x26, 0x44, 0xa4, 0xa8, 0x7e}
 	exp := "4x dog,5x car\n"
 
-	ciph := cipher.ParseCipher(ciphB)
+	ciph, err := cipher.ParseCipher(ciphB)
+	if err != nil {
+		t.Fatal(err)
+	}
 	inBuf := bytes.NewBuffer(in)
 	decodedIn := cipher.ApplyCipherDecode(ciph, inBuf)
 	decodedR := bufio.NewReader(decodedIn)
@@ -107,15 +116,9 @@ func TestReader(t *testing.T) {
 	}
 }
 
-func TestReaderNoop(t *testing.T) {
-	ciphB := []byte{0x00}
-	in := []byte("cat\n")
-
-	ciph := cipher.ParseCipher(ciphB)
-	inBuf := bytes.NewBuffer(in)
-	decodedIn := cipher.ApplyCipherDecode(ciph, inBuf)
-	decodedR := bufio.NewReader(decodedIn)
-	_, err := decodedR.ReadString('\n')
+func TestCipherNoop(t *testing.T) {
+	ciphB := []byte{0x01, 0x01, 0x04, 0xFF, 0x04, 0xAB, 0x04, 0x46, 0x04, 0x10, 0x00}
+	_, err := cipher.ParseCipher(ciphB)
 	if err == nil {
 		t.Fatal("expected an error for noop ciphers")
 	}
