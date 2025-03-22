@@ -39,9 +39,8 @@ type combinedCipher struct {
 
 func (cc *combinedCipher) Encode(b []byte) []byte {
 	input := b
-	for i, c := range cc.operations {
+	for _, c := range cc.operations {
 		input = c.Encode(input)
-		fmt.Println(i, input)
 	}
 	return input
 }

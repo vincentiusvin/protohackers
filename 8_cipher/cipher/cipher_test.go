@@ -3,6 +3,8 @@ package cipher_test
 import (
 	"bufio"
 	"bytes"
+	"crypto/rand"
+	"encoding/base64"
 	"protohackers/8_cipher/cipher"
 	"reflect"
 	"testing"
@@ -122,4 +124,35 @@ func TestCipherNoop(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error for noop ciphers")
 	}
+}
+
+func TestAlotOfData(t *testing.T) {
+	ciphB := []byte{0x01, 0x04, 0xFF, 0x04, 0xAB, 0x04, 0x46, 0x00}
+	ciph, err := cipher.ParseCipher(ciphB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 10000; i++ {
+		in := randomString(1000) + "\n"
+		enc := ciph.Encode([]byte(in))
+
+		inBuf := bytes.NewBuffer([]byte(enc))
+		decodedIn := cipher.ApplyCipherDecode(ciph, inBuf)
+		decodedR := bufio.NewReader(decodedIn)
+		dec, err := decodedR.ReadString('\n')
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if dec != in {
+			t.Fatalf("wrong encoding and decoding result. exp %v got %v", in, dec)
+		}
+	}
+}
+
+func randomString(n int) string {
+	b := make([]byte, n)
+	rand.Read(b)
+	return base64.StdEncoding.EncodeToString(b)
 }
