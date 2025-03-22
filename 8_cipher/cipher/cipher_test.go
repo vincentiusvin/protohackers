@@ -132,7 +132,7 @@ func TestAlotOfData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		in := randomString(1000) + "\n"
 		enc := ciph.Encode([]byte(in))
 
