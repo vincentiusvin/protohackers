@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDecode(t *testing.T) {
@@ -236,5 +237,50 @@ func TestJsonHandlingFail(t *testing.T) {
 	val, err := queue.Decode(json.RawMessage(in))
 	if err == nil {
 		t.Fatalf("supposed to error %v", val)
+	}
+}
+
+func TestWait(t *testing.T) {
+	ctx := context.Background()
+	jc := queue.NewJobCenter(ctx)
+
+	inQueue := "test"
+	inClient := 100
+	inJob := json.RawMessage([]byte{})
+	inPri := 1000
+
+	putReq := queue.PutRequest{
+		Request: queue.RequestPut,
+		Queue:   inQueue,
+		Pri:     inPri,
+		Job:     inJob,
+	}
+
+	getReq := &queue.GetRequest{
+		Request:  queue.RequestGet,
+		Queues:   []string{inQueue},
+		Wait:     true,
+		ClientID: inClient,
+	}
+
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		jc.Put(&putReq)
+	}()
+
+	resp := jc.Get(getReq)
+
+	outJob := *resp.Job
+	outPri := *resp.Pri
+	outQueue := *resp.Queue
+
+	if !bytes.Equal(outJob, inJob) {
+		t.Fatalf("wrong job exp %v got %v", inJob, outJob)
+	}
+	if outPri != inPri {
+		t.Fatalf("wrong prio exp %v got %v", outPri, inPri)
+	}
+	if outQueue != inQueue {
+		t.Fatalf("wrong queue exp %v got %v", outQueue, inQueue)
 	}
 }
