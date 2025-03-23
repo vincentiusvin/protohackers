@@ -33,22 +33,22 @@ func newQueue(name string) *Queue {
 type JobCenter struct {
 	Queues map[string]*Queue
 
-	putCh        chan *PutRequest
-	getCh        chan *GetRequest
-	delCh        chan *DeleteRequest
-	abortCh      chan *AbortRequest
-	disconnectCh chan int
+	putCh   chan *PutRequest
+	getCh   chan *GetRequest
+	delCh   chan *DeleteRequest
+	abortCh chan *AbortRequest
+	discCh  chan *DisconnectRequest
 }
 
 func NewJobCenter(ctx context.Context) *JobCenter {
 	jc := &JobCenter{
 		Queues: make(map[string]*Queue),
 
-		putCh:        make(chan *PutRequest),
-		getCh:        make(chan *GetRequest),
-		delCh:        make(chan *DeleteRequest),
-		abortCh:      make(chan *AbortRequest),
-		disconnectCh: make(chan int),
+		putCh:   make(chan *PutRequest),
+		getCh:   make(chan *GetRequest),
+		delCh:   make(chan *DeleteRequest),
+		abortCh: make(chan *AbortRequest),
+		discCh:  make(chan *DisconnectRequest),
 	}
 	log.Printf("initialized new job center\n")
 	go jc.process(ctx)
@@ -79,8 +79,10 @@ func (jc *JobCenter) Delete(dr *DeleteRequest) *DeleteResponse {
 	return <-dr.respCh
 }
 
-func (jc *JobCenter) DisconnectWorker(clientNum int) {
-	jc.disconnectCh <- clientNum
+func (jc *JobCenter) DisconnectWorker(dr *DisconnectRequest) {
+	dr.init()
+	jc.discCh <- dr
+	<-dr.respCh
 }
 
 func (jc *JobCenter) process(ctx context.Context) {
@@ -96,7 +98,7 @@ func (jc *JobCenter) process(ctx context.Context) {
 			jc.processAbort(ar)
 		case dr := <-jc.delCh:
 			jc.processDelete(dr)
-		case dc := <-jc.disconnectCh:
+		case dc := <-jc.discCh:
 			jc.processDisconnection(dc)
 		}
 	}
@@ -202,14 +204,18 @@ func (jc *JobCenter) processDelete(dr *DeleteRequest) {
 	dr.respCh <- &resp
 }
 
-func (jc *JobCenter) processDisconnection(clientNum int) {
+func (jc *JobCenter) processDisconnection(dr *DisconnectRequest) {
+	aborted := make([]int, 0)
 	for _, q := range jc.Queues {
 		for _, j := range q.Jobs {
-			if j.ClientID == clientNum {
+			if j.ClientID == dr.ClientID {
 				j.ClientID = 0
+				aborted = append(aborted, j.Id)
 			}
 		}
 	}
+	log.Printf("disconnected %v. aborted %v", dr.ClientID, aborted)
+	dr.respCh <- struct{}{}
 }
 
 func (jc *JobCenter) getQueue(name string) *Queue {

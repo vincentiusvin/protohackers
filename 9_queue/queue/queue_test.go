@@ -195,4 +195,11 @@ func TestJobCenter(t *testing.T) {
 			t.Fatalf("failed to delete")
 		}
 	})
+
+	t.Run("disconnect", func(t *testing.T) {
+		req := &queue.DisconnectRequest{
+			ClientID: clientNum,
+		}
+		jc.DisconnectWorker(req)
+	})
 }

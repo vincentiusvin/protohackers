@@ -90,3 +90,13 @@ type DeleteResponse struct {
 func (ar *DeleteRequest) init() {
 	ar.respCh = make(chan *DeleteResponse)
 }
+
+type DisconnectRequest struct {
+	ClientID int
+
+	respCh chan struct{}
+}
+
+func (dr *DisconnectRequest) init() {
+	dr.respCh = make(chan struct{})
+}
