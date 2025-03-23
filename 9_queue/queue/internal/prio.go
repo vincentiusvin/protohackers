@@ -20,18 +20,19 @@ type Job struct {
 
 type Queue struct {
 	Name string
-	jobs []*Job
+
+	jobs map[int]*Job
 }
 
 func NewQueue(name string) *Queue {
 	return &Queue{
 		Name: name,
-		jobs: make([]*Job, 0),
+		jobs: make(map[int]*Job),
 	}
 }
 
 func (q *Queue) AddJob(nj *Job) {
-	q.jobs = append(q.jobs, nj)
+	q.jobs[nj.Id] = nj
 }
 
 func (q *Queue) GetJob(id int) *Job {
@@ -45,6 +46,7 @@ func (q *Queue) GetJob(id int) *Job {
 
 func (q *Queue) GetPrioJob() *Job {
 	var maxJob *Job
+
 	for _, c := range q.jobs {
 		if c.ClientID != 0 {
 			continue
@@ -52,8 +54,8 @@ func (q *Queue) GetPrioJob() *Job {
 		if maxJob == nil || c.Prio > maxJob.Prio {
 			maxJob = c
 		}
-
 	}
+
 	return maxJob
 }
 
@@ -68,14 +70,7 @@ func (q *Queue) MarkJobExecuting(jobId int, clientId int) {
 }
 
 func (q *Queue) DeleteJob(id int) {
-	r := make([]*Job, 0)
-	for _, c := range q.jobs {
-		if c.Id == id {
-			continue
-		}
-		r = append(r, c)
-	}
-	q.jobs = r
+	delete(q.jobs, id)
 }
 
 func (q *Queue) DisconnectAllFrom(clientId int) []int {
