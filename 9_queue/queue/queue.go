@@ -26,30 +26,56 @@ func newQueue(name string) *Queue {
 
 type JobCenter struct {
 	Queues map[string]*Queue
-	putCh  chan PutRequest
+	lkpJob map[int]*Job // a job id cache to quickly fetch jobs.
+
+	putCh   chan *PutRequest
+	getCh   chan *GetRequest
+	delCh   chan *DeleteRequest
+	abortCh chan *AbortRequest
 }
 
 func NewJobCenter(ctx context.Context) *JobCenter {
 	jc := &JobCenter{
-		putCh: make(chan PutRequest),
+		putCh:   make(chan *PutRequest),
+		getCh:   make(chan *GetRequest),
+		delCh:   make(chan *DeleteRequest),
+		abortCh: make(chan *AbortRequest),
 	}
-	go jc.Process(ctx)
+	go jc.process(ctx)
 	return jc
 }
 
-func (jc *JobCenter) Process(ctx context.Context) {
+func (jc *JobCenter) Put(pr *PutRequest) {
+	jc.putCh <- pr
+}
+
+func (jc *JobCenter) Get(gr *GetRequest) {
+	jc.getCh <- gr
+}
+
+func (jc *JobCenter) Delete(dr *DeleteRequest) {
+	jc.delCh <- dr
+}
+
+func (jc *JobCenter) Abort(ar *AbortRequest) {
+	jc.abortCh <- ar
+}
+
+func (jc *JobCenter) process(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case pr := <-jc.putCh:
 			jc.processPut(pr)
+		case dr := <-jc.delCh:
+			jc.processDelete(dr)
 		}
 	}
 }
 
 // return the id of the job
-func (jc *JobCenter) processPut(pr PutRequest) int {
+func (jc *JobCenter) processPut(pr *PutRequest) int {
 	q := jc.getQueue(pr.Queue)
 	nj := &Job{
 		Id:    rand.Int(),
@@ -63,9 +89,27 @@ func (jc *JobCenter) processPut(pr PutRequest) int {
 	return nj.Id
 }
 
+func (jc *JobCenter) processDelete(dr *DeleteRequest) {
+	job := jc.getJob(dr.Id)
+	q := jc.getQueue(job.Queue)
+
+	filtered := make([]*Job, 0)
+	for _, c := range q.Jobs {
+		if c == job {
+			continue
+		}
+		filtered = append(filtered, c)
+	}
+	q.Jobs = filtered
+}
+
 func (jc *JobCenter) getQueue(name string) *Queue {
 	if _, ok := jc.Queues[name]; !ok {
 		jc.Queues[name] = newQueue(name)
 	}
 	return jc.Queues[name]
+}
+
+func (jc *JobCenter) getJob(id int) *Job {
+	return jc.lkpJob[id]
 }
