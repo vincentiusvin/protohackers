@@ -101,7 +101,7 @@ func TestJobCenter(t *testing.T) {
 
 	t.Run("put test", func(t *testing.T) {
 		req := &queue.PutRequest{
-			Request: "put",
+			Request: queue.RequestPut,
 			Queue:   inQueue,
 			Pri:     inPri,
 			Job:     inJob,
@@ -117,7 +117,7 @@ func TestJobCenter(t *testing.T) {
 
 	t.Run("get test", func(t *testing.T) {
 		req := &queue.GetRequest{
-			Request:  "get",
+			Request:  queue.RequestGet,
 			Queues:   []string{inQueue},
 			ClientID: clientNum,
 		}
@@ -148,7 +148,7 @@ func TestJobCenter(t *testing.T) {
 
 	t.Run("abort by someone else", func(t *testing.T) {
 		req := &queue.AbortRequest{
-			Request:  "abort",
+			Request:  queue.RequestAbort,
 			Id:       jobId,
 			ClientID: clientNum + 1,
 		}
@@ -161,7 +161,7 @@ func TestJobCenter(t *testing.T) {
 
 	t.Run("abort test", func(t *testing.T) {
 		req := &queue.AbortRequest{
-			Request:  "abort",
+			Request:  queue.RequestAbort,
 			Id:       jobId,
 			ClientID: clientNum,
 		}
@@ -174,7 +174,7 @@ func TestJobCenter(t *testing.T) {
 
 	t.Run("abort not found test", func(t *testing.T) {
 		req := &queue.AbortRequest{
-			Request: "abort",
+			Request: queue.RequestAbort,
 			Id:      jobId + 1,
 		}
 		resp := jc.Abort(req)
@@ -186,7 +186,7 @@ func TestJobCenter(t *testing.T) {
 
 	t.Run("delete test", func(t *testing.T) {
 		req := &queue.DeleteRequest{
-			Request: "delete",
+			Request: queue.RequestDelete,
 			Id:      jobId,
 		}
 		resp := jc.Delete(req)

@@ -33,20 +33,22 @@ func newQueue(name string) *Queue {
 type JobCenter struct {
 	Queues map[string]*Queue
 
-	putCh   chan *PutRequest
-	getCh   chan *GetRequest
-	delCh   chan *DeleteRequest
-	abortCh chan *AbortRequest
+	putCh        chan *PutRequest
+	getCh        chan *GetRequest
+	delCh        chan *DeleteRequest
+	abortCh      chan *AbortRequest
+	disconnectCh chan int
 }
 
 func NewJobCenter(ctx context.Context) *JobCenter {
 	jc := &JobCenter{
 		Queues: make(map[string]*Queue),
 
-		putCh:   make(chan *PutRequest),
-		getCh:   make(chan *GetRequest),
-		delCh:   make(chan *DeleteRequest),
-		abortCh: make(chan *AbortRequest),
+		putCh:        make(chan *PutRequest),
+		getCh:        make(chan *GetRequest),
+		delCh:        make(chan *DeleteRequest),
+		abortCh:      make(chan *AbortRequest),
+		disconnectCh: make(chan int),
 	}
 	log.Printf("initialized new job center\n")
 	go jc.process(ctx)
@@ -77,6 +79,10 @@ func (jc *JobCenter) Delete(dr *DeleteRequest) *DeleteResponse {
 	return <-dr.respCh
 }
 
+func (jc *JobCenter) DisconnectWorker(clientNum int) {
+	jc.disconnectCh <- clientNum
+}
+
 func (jc *JobCenter) process(ctx context.Context) {
 	for {
 		select {
@@ -90,6 +96,8 @@ func (jc *JobCenter) process(ctx context.Context) {
 			jc.processAbort(ar)
 		case dr := <-jc.delCh:
 			jc.processDelete(dr)
+		case dc := <-jc.disconnectCh:
+			jc.processDisconnection(dc)
 		}
 	}
 }
@@ -160,6 +168,7 @@ func (jc *JobCenter) processAbort(ar *AbortRequest) {
 	} else if job.ClientID != ar.ClientID {
 		resp.Status = StatusError
 	} else {
+		job.ClientID = 0
 		resp.Status = StatusOK
 	}
 
@@ -191,6 +200,16 @@ func (jc *JobCenter) processDelete(dr *DeleteRequest) {
 
 	log.Printf("delete ret:%v", resp.Status)
 	dr.respCh <- &resp
+}
+
+func (jc *JobCenter) processDisconnection(clientNum int) {
+	for _, q := range jc.Queues {
+		for _, j := range q.Jobs {
+			if j.ClientID == clientNum {
+				j.ClientID = 0
+			}
+		}
+	}
 }
 
 func (jc *JobCenter) getQueue(name string) *Queue {
