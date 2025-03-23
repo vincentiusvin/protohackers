@@ -1,86 +1,49 @@
 package internal
 
-import "encoding/json"
+import (
+	"container/heap"
+)
 
-type JobStatus string
-
-type Job struct {
-	Id    int
-	Job   json.RawMessage
-	Prio  int
-	Queue string
-
-	// client id currently working the job.
-	// obtain from GetClientID for every session.
-	// cannot be zero.
-	ClientID int
+type priorityQueue struct {
+	jobs []*Job
 }
 
-// data structure for efficient querying of jobs
-
-type Queue struct {
-	Name string
-
-	jobs map[int]*Job
-}
-
-func NewQueue(name string) *Queue {
-	return &Queue{
-		Name: name,
-		jobs: make(map[int]*Job),
+func makePriorityQueue() *priorityQueue {
+	p := &priorityQueue{
+		jobs: make([]*Job, 0),
 	}
+	heap.Init(p)
+	return p
 }
 
-func (q *Queue) AddJob(nj *Job) {
-	q.jobs[nj.Id] = nj
+func (pq *priorityQueue) Len() int {
+	return len(pq.jobs)
 }
 
-func (q *Queue) GetJob(id int) *Job {
-	for _, c := range q.jobs {
-		if c.Id == id {
-			return c
-		}
-	}
-	return nil
+func (pq *priorityQueue) Less(i, j int) bool {
+	// We want Pop to give us the highest, not lowest, priority so we use greater than here.
+	return pq.jobs[i].Prio > pq.jobs[j].Prio
 }
 
-func (q *Queue) GetPrioJob() *Job {
-	var maxJob *Job
-
-	for _, c := range q.jobs {
-		if c.ClientID != 0 {
-			continue
-		}
-		if maxJob == nil || c.Prio > maxJob.Prio {
-			maxJob = c
-		}
-	}
-
-	return maxJob
+func (pq *priorityQueue) Push(x any) {
+	cast := x.(*Job)
+	pq.jobs = append(pq.jobs, cast)
 }
 
-func (q *Queue) AbortJob(jobId int) {
-	j := q.GetJob(jobId)
-	j.ClientID = 0
+func (pq *priorityQueue) Pop() any {
+	l := len(pq.jobs)
+	item := pq.jobs[l-1]
+	pq.jobs = pq.jobs[:l-1]
+	return item
 }
 
-func (q *Queue) MarkJobExecuting(jobId int, clientId int) {
-	j := q.GetJob(jobId)
-	j.ClientID = clientId
+func (pq *priorityQueue) Swap(i, j int) {
+	pq.jobs[i], pq.jobs[j] = pq.jobs[j], pq.jobs[i]
 }
 
-func (q *Queue) DeleteJob(id int) {
-	delete(q.jobs, id)
-}
+var pq *priorityQueue
+var _ heap.Interface = pq
 
-func (q *Queue) DisconnectAllFrom(clientId int) []int {
-	dced := make([]int, 0)
-	for _, c := range q.jobs {
-		if c.ClientID != clientId {
-			continue
-		}
-		c.ClientID = 0
-		dced = append(dced, c.Id)
-	}
-	return dced
+func (pq *priorityQueue) Peek() *Job {
+	return pq.jobs[0]
 }

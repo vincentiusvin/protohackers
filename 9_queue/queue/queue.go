@@ -153,7 +153,7 @@ func (jc *JobCenter) processGet(gr *GetRequest) {
 		resp.Status = StatusNoJob
 		log.Printf("get ret:%v\n", resp.Status)
 	} else {
-		maxQueue.MarkJobExecuting(maxJob.Id, gr.ClientID)
+		maxQueue.PopJob(maxJob.Id, gr.ClientID)
 
 		resp.Status = StatusOK
 		resp.Id = &maxJob.Id
