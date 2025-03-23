@@ -70,15 +70,15 @@ func (q *Queue) PopJob(jobId int, clientId int) {
 	j.ClientID = clientId
 }
 
-func (q *Queue) DeleteJob(id int) {
-	for i, c := range q.availJobs.jobs {
-		if c.Id == i {
-			heap.Remove(q.availJobs, i)
+func (q *Queue) DeleteJob(jobId int) {
+	for idx, c := range q.availJobs.jobs {
+		if c.Id == jobId {
+			heap.Remove(q.availJobs, idx)
 			break
 		}
 	}
 
-	delete(q.jobs, id)
+	delete(q.jobs, jobId)
 }
 
 func (q *Queue) DisconnectAllFrom(clientId int) []int {
