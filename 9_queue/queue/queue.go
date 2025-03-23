@@ -23,7 +23,7 @@ type Job struct {
 
 type Queue struct {
 	Name string
-	Jobs []*Job // sorted descendingly by prio. use heap if it needs to be faster
+	Jobs []*Job
 }
 
 func newQueue(name string) *Queue {
