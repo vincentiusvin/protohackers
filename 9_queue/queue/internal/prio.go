@@ -45,5 +45,8 @@ var pq *priorityQueue
 var _ heap.Interface = pq
 
 func (pq *priorityQueue) Peek() *Job {
+	if pq.Len() == 0 {
+		return nil
+	}
 	return pq.jobs[0]
 }

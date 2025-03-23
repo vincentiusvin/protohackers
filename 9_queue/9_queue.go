@@ -8,7 +8,6 @@ import (
 	"log"
 	"net"
 	"protohackers/9_queue/queue"
-	"time"
 )
 
 func main() {
@@ -51,7 +50,6 @@ func handleConnection(c net.Conn, jc *queue.JobCenter) {
 
 	for {
 		b, err := r.ReadBytes('\n')
-		t := time.Now()
 		if err != nil {
 			log.Println(err)
 			return
@@ -96,6 +94,5 @@ func handleConnection(c net.Conn, jc *queue.JobCenter) {
 		if err != nil {
 			log.Println(err)
 		}
-		log.Printf("time: %v\n", time.Since(t))
 	}
 }
