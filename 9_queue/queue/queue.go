@@ -14,7 +14,10 @@ type Job struct {
 	Prio  int
 	Queue string
 
-	ClientID int // client id currently working the job
+	// client id currently working the job.
+	// obtain from GetClientID for every session.
+	// cannot be zero.
+	ClientID int
 }
 
 type Queue struct {
@@ -142,6 +145,9 @@ func (jc *JobCenter) processGet(gr *GetRequest) {
 
 	for _, q := range jc.Queues {
 		for _, j := range q.Jobs {
+			if j.ClientID != 0 {
+				continue
+			}
 			if maxJob == nil || maxJob.Prio < j.Prio {
 				maxJob = j
 			}
