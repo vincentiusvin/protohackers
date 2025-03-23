@@ -160,6 +160,7 @@ func (jc *JobCenter) processGet(gr *GetRequest) {
 		} else {
 			panic("wait not implemented yet")
 		}
+		log.Printf("get ret:%v\n", resp.Status)
 	} else {
 		maxJob.ClientID = gr.ClientID
 
@@ -168,9 +169,9 @@ func (jc *JobCenter) processGet(gr *GetRequest) {
 		resp.Job = &maxJob.Job
 		resp.Pri = &maxJob.Prio
 		resp.Queue = &maxJob.Queue
+		log.Printf("get ret:%v id:%v prio:%v q:%v\n", resp.Status, maxJob.Id, maxJob.Prio, maxJob.Queue)
 	}
 
-	log.Printf("get ret:%v\n", resp.Status)
 	gr.respCh <- &resp
 }
 
