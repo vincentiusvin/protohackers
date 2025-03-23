@@ -136,6 +136,9 @@ func (jc *JobCenter) processGet(gr *GetRequest) {
 			continue
 		}
 		j := q.GetPrioJob()
+		if j == nil {
+			continue
+		}
 		if maxJob == nil || maxJob.Prio < j.Prio {
 			maxJob = j
 			maxQueue = q
