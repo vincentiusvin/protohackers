@@ -11,6 +11,9 @@ Done:
 - [x] 6 - Speed Daemon
 - [x] 7 - Line Reversal
 - [x] 8 - Insecure Sockets Layer
+- [x] 9 - Job Centre
+- [ ] 10 - Voracious Code Storage
+- [ ] 11 - Pest Control
 
 # Running
 
@@ -89,3 +92,5 @@ Would've been easier if I didn't fumble with that stupid bug in Read()
 ## 9
 
 Tried implementing the domain logic fully using channels. Pretty fun! Lots of boilerplate though.
+
+Had some performance issues so I implemented a priority queue too.
