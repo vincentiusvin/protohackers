@@ -2,12 +2,15 @@ package queue
 
 import (
 	"context"
+	"encoding/json"
 	"math/rand"
 )
 
+type JobStatus string
+
 type Job struct {
 	Id    int
-	Job   any
+	Job   json.RawMessage
 	Prio  int
 	Queue string
 }
@@ -75,6 +78,8 @@ func (jc *JobCenter) process(ctx context.Context) {
 			jc.processPut(pr)
 		case dr := <-jc.delCh:
 			jc.processDelete(dr)
+		case gr := <-jc.getCh:
+			jc.processGet(gr)
 		}
 	}
 }
@@ -94,6 +99,32 @@ func (jc *JobCenter) processPut(pr *PutRequest) {
 	pr.respCh <- &PutResponse{
 		Status: StatusOK,
 		Id:     nj.Id,
+	}
+}
+
+func (jc *JobCenter) processGet(gr *GetRequest) {
+	var maxJob *Job
+
+	for _, q := range jc.Queues {
+		for _, j := range q.Jobs {
+			if maxJob == nil || maxJob.Prio < j.Prio {
+				maxJob = j
+			}
+		}
+	}
+
+	if maxJob == nil {
+		gr.respCh <- &GetResponse{
+			Status: StatusNoJob,
+		}
+	} else {
+		gr.respCh <- &GetResponse{
+			Status: StatusOK,
+			Id:     &maxJob.Id,
+			Job:    &maxJob.Job,
+			Pri:    &maxJob.Prio,
+			Queue:  &maxJob.Queue,
+		}
 	}
 }
 
