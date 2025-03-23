@@ -171,13 +171,21 @@ func (jc *JobCenter) processDelete(dr *DeleteRequest) {
 
 	job, queue := jc.findJob(dr.Id)
 	filtered := make([]*Job, 0)
+	found := false
 	for _, c := range queue.Jobs {
 		if c == job {
+			found = true
 			continue
 		}
 		filtered = append(filtered, c)
 	}
 	queue.Jobs = filtered
+
+	if found {
+		resp.Status = StatusOK
+	} else {
+		resp.Status = StatusNoJob
+	}
 
 	log.Printf("delete ret:%v", resp.Status)
 	dr.respCh <- &resp

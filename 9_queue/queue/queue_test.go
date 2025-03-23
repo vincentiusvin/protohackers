@@ -167,4 +167,16 @@ func TestJobCenter(t *testing.T) {
 			t.Fatalf("aborted nonexistent request")
 		}
 	})
+
+	t.Run("delete test", func(t *testing.T) {
+		req := &queue.DeleteRequest{
+			Request: "delete",
+			Id:      jobId,
+		}
+		resp := jc.Delete(req)
+
+		if resp.Status != queue.StatusOK {
+			t.Fatalf("failed to delete")
+		}
+	})
 }
