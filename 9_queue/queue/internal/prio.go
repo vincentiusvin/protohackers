@@ -16,14 +16,80 @@ type Job struct {
 	ClientID int
 }
 
+// data structure for efficient querying of jobs
+
 type Queue struct {
 	Name string
-	Jobs []*Job
+	jobs []*Job
 }
 
 func NewQueue(name string) *Queue {
 	return &Queue{
 		Name: name,
-		Jobs: make([]*Job, 0),
+		jobs: make([]*Job, 0),
 	}
+}
+
+func (q *Queue) AddJob(nj *Job) {
+	q.jobs = append(q.jobs, nj)
+}
+
+func (q *Queue) PeekPrioJob() *Job {
+	var maxJob *Job
+	for _, c := range q.jobs {
+		if c.ClientID != 0 {
+			continue
+		}
+		if maxJob == nil || c.Prio > maxJob.Prio {
+			maxJob = c
+		}
+
+	}
+	return maxJob
+}
+
+func (q *Queue) HasJob(id int) bool {
+	return q.GetJob(id) != nil
+}
+
+func (q *Queue) DeleteJob(id int) {
+	r := make([]*Job, 0)
+	for _, c := range q.jobs {
+		if c.Id == id {
+			continue
+		}
+		r = append(r, c)
+	}
+	q.jobs = r
+}
+
+func (q *Queue) GetJob(id int) *Job {
+	for _, c := range q.jobs {
+		if c.Id == id {
+			return c
+		}
+	}
+	return nil
+}
+
+func (q *Queue) AbortJob(jobId int) {
+	j := q.GetJob(jobId)
+	j.ClientID = 0
+}
+
+func (q *Queue) MarkJob(jobId int, clientId int) {
+	j := q.GetJob(jobId)
+	j.ClientID = clientId
+}
+
+func (q *Queue) DisconnectAllFrom(clientId int) []int {
+	dced := make([]int, 0)
+	for _, c := range q.jobs {
+		if c.ClientID != clientId {
+			continue
+		}
+		c.ClientID = 0
+		dced = append(dced, c.Id)
+	}
+	return dced
 }

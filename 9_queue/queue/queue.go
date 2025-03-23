@@ -2,7 +2,6 @@ package queue
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"protohackers/9_queue/queue/internal"
 	"time"
@@ -117,7 +116,7 @@ func (jc *JobCenter) processPut(pr *PutRequest) {
 	resp.Status = StatusOK
 	resp.Id = nj.Id
 
-	q.Jobs = append(q.Jobs, nj)
+	q.AddJob(nj)
 
 	log.Printf("put ret:%v\n", resp.Status)
 	pr.respCh <- &resp
@@ -125,7 +124,9 @@ func (jc *JobCenter) processPut(pr *PutRequest) {
 
 func (jc *JobCenter) processGet(gr *GetRequest) {
 	log.Printf("get qs:%v w:%v", gr.Queues, gr.Wait)
+
 	var maxJob *internal.Job
+	var maxQueue *internal.Queue
 	var resp GetResponse
 
 	queues := make(map[string]bool)
@@ -137,13 +138,10 @@ func (jc *JobCenter) processGet(gr *GetRequest) {
 		if !queues[q.Name] {
 			continue
 		}
-		for _, j := range q.Jobs {
-			if j.ClientID != 0 {
-				continue
-			}
-			if maxJob == nil || maxJob.Prio < j.Prio {
-				maxJob = j
-			}
+		j := q.PeekPrioJob()
+		if maxJob == nil || maxJob.Prio < j.Prio {
+			maxJob = j
+			maxQueue = q
 		}
 	}
 
@@ -155,7 +153,7 @@ func (jc *JobCenter) processGet(gr *GetRequest) {
 		resp.Status = StatusNoJob
 		log.Printf("get ret:%v\n", resp.Status)
 	} else {
-		maxJob.ClientID = gr.ClientID
+		maxQueue.MarkJob(maxJob.Id, gr.ClientID)
 
 		resp.Status = StatusOK
 		resp.Id = &maxJob.Id
@@ -170,47 +168,49 @@ func (jc *JobCenter) processGet(gr *GetRequest) {
 
 func (jc *JobCenter) processAbort(ar *AbortRequest) {
 	log.Printf("abort id:%v", ar.Id)
-	job, _ := jc.findJob(ar.Id)
 
 	var resp AbortResponse
 
-	if job == nil {
+	defer func() {
+		ar.respCh <- &resp
+	}()
+
+	q := jc.findQueueFromJob(ar.Id)
+
+	if q == nil {
 		resp.Status = StatusNoJob
-	} else if job.ClientID != ar.ClientID {
-		resp.Status = StatusError
-	} else {
-		job.ClientID = 0
-		resp.Status = StatusOK
+		return
 	}
 
+	job := q.GetJob(ar.Id)
+
+	if job == nil {
+		resp.Status = StatusNoJob
+		return
+	}
+
+	if job.ClientID != ar.ClientID {
+		resp.Status = StatusError
+		return
+	}
+
+	q.AbortJob(ar.Id)
+	resp.Status = StatusOK
+
 	log.Printf("abort ret:%v\n", resp.Status)
-	ar.respCh <- &resp
 }
 
 func (jc *JobCenter) processDelete(dr *DeleteRequest) {
 	log.Printf("delete id:%v", dr.Id)
 	var resp DeleteResponse
 
-	job, queue := jc.findJob(dr.Id)
+	q := jc.findQueueFromJob(dr.Id)
 
-	if job != nil && queue != nil {
-		filtered := make([]*internal.Job, 0)
-		found := false
-		for _, c := range queue.Jobs {
-			if c == job {
-				found = true
-				continue
-			}
-			filtered = append(filtered, c)
-		}
-		queue.Jobs = filtered
-		if !found {
-			panic(fmt.Sprintf("expected job %v to be in queue %v", job, queue))
-		}
-		resp.Status = StatusOK
-	} else {
+	if q == nil {
 		resp.Status = StatusNoJob
-
+	} else {
+		q.DeleteJob(dr.Id)
+		resp.Status = StatusOK
 	}
 
 	log.Printf("delete ret:%v", resp.Status)
@@ -220,12 +220,8 @@ func (jc *JobCenter) processDelete(dr *DeleteRequest) {
 func (jc *JobCenter) processDisconnection(dr *DisconnectRequest) {
 	aborted := make([]int, 0)
 	for _, q := range jc.Queues {
-		for _, j := range q.Jobs {
-			if j.ClientID == dr.ClientID {
-				j.ClientID = 0
-				aborted = append(aborted, j.Id)
-			}
-		}
+		ab := q.DisconnectAllFrom(dr.ClientID)
+		aborted = append(aborted, ab...)
 	}
 	log.Printf("disconnected %v. aborted %v", dr.ClientID, aborted)
 	dr.respCh <- struct{}{}
@@ -251,15 +247,13 @@ func (jc *JobCenter) getQueue(name string) *internal.Queue {
 	return jc.Queues[name]
 }
 
-func (jc *JobCenter) findJob(id int) (*internal.Job, *internal.Queue) {
+func (jc *JobCenter) findQueueFromJob(jobId int) *internal.Queue {
 	for _, q := range jc.Queues {
-		for _, j := range q.Jobs {
-			if j.Id == id {
-				return j, q
-			}
+		if q.HasJob(jobId) {
+			return q
 		}
 	}
-	return nil, nil
+	return nil
 }
 
 // get a monotonically increasing job id.

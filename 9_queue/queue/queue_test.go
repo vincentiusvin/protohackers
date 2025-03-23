@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"protohackers/9_queue/queue"
 	"reflect"
 	"strings"
@@ -314,7 +315,13 @@ func TestPerformance(t *testing.T) {
 				Queues:   []string{inQueue},
 				ClientID: clientId,
 			}
-			jc.Get(&getReq)
+			res := jc.Get(&getReq)
+			out_pri := *res.Pri
+			exp_pri := (100000 - 1) - i
+			if out_pri != exp_pri {
+				err := fmt.Errorf("wrong prio exp %v got %v", exp_pri, out_pri)
+				panic(err)
+			}
 		}
 	}()
 
