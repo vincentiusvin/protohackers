@@ -24,11 +24,17 @@ type PutRequest struct {
 	Queue   string          `json:"queue"`
 	Pri     int             `json:"pri"`
 	Job     json.RawMessage `json:"job"`
+
+	respCh chan *PutResponse
 }
 
 type PutResponse struct {
 	Status ResponseStatus `json:"status"`
 	Id     int            `json:"id"`
+}
+
+func (pr *PutRequest) init() {
+	pr.respCh = make(chan *PutResponse)
 }
 
 type GetRequest struct {

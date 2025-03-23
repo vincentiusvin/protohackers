@@ -36,6 +36,9 @@ type JobCenter struct {
 
 func NewJobCenter(ctx context.Context) *JobCenter {
 	jc := &JobCenter{
+		Queues: make(map[string]*Queue),
+		lkpJob: make(map[int]*Job),
+
 		putCh:   make(chan *PutRequest),
 		getCh:   make(chan *GetRequest),
 		delCh:   make(chan *DeleteRequest),
@@ -45,8 +48,10 @@ func NewJobCenter(ctx context.Context) *JobCenter {
 	return jc
 }
 
-func (jc *JobCenter) Put(pr *PutRequest) {
+func (jc *JobCenter) Put(pr *PutRequest) *PutResponse {
+	pr.init()
 	jc.putCh <- pr
+	return <-pr.respCh
 }
 
 func (jc *JobCenter) Get(gr *GetRequest) {
@@ -75,7 +80,7 @@ func (jc *JobCenter) process(ctx context.Context) {
 }
 
 // return the id of the job
-func (jc *JobCenter) processPut(pr *PutRequest) int {
+func (jc *JobCenter) processPut(pr *PutRequest) {
 	q := jc.getQueue(pr.Queue)
 	nj := &Job{
 		Id:    rand.Int(),
@@ -86,7 +91,10 @@ func (jc *JobCenter) processPut(pr *PutRequest) int {
 
 	q.Jobs = append(q.Jobs, nj)
 
-	return nj.Id
+	pr.respCh <- &PutResponse{
+		Status: StatusOK,
+		Id:     nj.Id,
+	}
 }
 
 func (jc *JobCenter) processDelete(dr *DeleteRequest) {
