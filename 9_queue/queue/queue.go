@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 )
 
 type JobStatus string
@@ -103,6 +104,7 @@ func (jc *JobCenter) GetClientID() int {
 func (jc *JobCenter) process(ctx context.Context) {
 	for {
 		processWaiting := true
+		t := time.Now()
 		select {
 		case <-ctx.Done():
 			return
@@ -118,6 +120,7 @@ func (jc *JobCenter) process(ctx context.Context) {
 		case dc := <-jc.discCh:
 			jc.processDisconnection(dc)
 		}
+		log.Printf("dur: %v\n", time.Since(t))
 		if processWaiting {
 			jc.processWaitingRequests()
 		}
