@@ -100,3 +100,7 @@ type DisconnectRequest struct {
 func (dr *DisconnectRequest) init() {
 	dr.respCh = make(chan struct{})
 }
+
+type GeneralError struct {
+	Status ResponseStatus `json:"status"`
+}

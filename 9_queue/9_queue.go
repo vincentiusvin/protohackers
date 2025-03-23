@@ -51,6 +51,12 @@ func handleConnection(c net.Conn, jc *queue.JobCenter) {
 				return
 			} else {
 				log.Println(err)
+				err = enc.Encode(&queue.GeneralError{
+					Status: queue.StatusError,
+				})
+				if err != nil {
+					log.Println("failed to send error: %w", err)
+				}
 				continue
 			}
 		}
