@@ -92,6 +92,7 @@ func TestJobCenter(t *testing.T) {
 	ctx := context.Background()
 	jc := queue.NewJobCenter(ctx)
 
+	clientNum := 100
 	inPri := 123
 	inQueue := "queue1"
 	inJob := json.RawMessage([]byte("{\"f\":1}"))
@@ -116,8 +117,9 @@ func TestJobCenter(t *testing.T) {
 
 	t.Run("get test", func(t *testing.T) {
 		req := &queue.GetRequest{
-			Request: "get",
-			Queues:  []string{inQueue},
+			Request:  "get",
+			Queues:   []string{inQueue},
+			ClientID: clientNum,
 		}
 		resp := jc.Get(req)
 
@@ -144,15 +146,29 @@ func TestJobCenter(t *testing.T) {
 		}
 	})
 
+	t.Run("abort by someone else", func(t *testing.T) {
+		req := &queue.AbortRequest{
+			Request:  "abort",
+			Id:       jobId,
+			ClientID: clientNum + 1,
+		}
+		resp := jc.Abort(req)
+
+		if resp.Status != queue.StatusError {
+			t.Fatalf("job aborted by someone else")
+		}
+	})
+
 	t.Run("abort test", func(t *testing.T) {
 		req := &queue.AbortRequest{
-			Request: "abort",
-			Id:      jobId,
+			Request:  "abort",
+			Id:       jobId,
+			ClientID: clientNum,
 		}
 		resp := jc.Abort(req)
 
 		if resp.Status != queue.StatusOK {
-			t.Fatalf("failed to delete")
+			t.Fatalf("failed to abort")
 		}
 	})
 

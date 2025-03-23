@@ -136,6 +136,8 @@ func (jc *JobCenter) processGet(gr *GetRequest) {
 			panic("wait not implemented yet")
 		}
 	} else {
+		maxJob.ClientID = gr.ClientID
+
 		resp.Status = StatusOK
 		resp.Id = &maxJob.Id
 		resp.Job = &maxJob.Job

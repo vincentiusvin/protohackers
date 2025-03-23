@@ -42,6 +42,8 @@ type GetRequest struct {
 	Queues  []string    `json:"queues"`
 	Wait    bool        `json:"wait"` // optional, but zero value is fine here because only true is valid
 
+	ClientID int
+
 	respCh chan *GetResponse
 }
 
