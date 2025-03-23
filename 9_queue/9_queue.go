@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
+	"math/rand"
 	"net"
+	"protohackers/9_queue/queue"
 )
 
 func main() {
@@ -11,6 +14,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	ctx := context.Background()
+	jc := queue.NewJobCenter(ctx)
 
 	log.Println("Server listening at " + addr)
 
@@ -21,10 +26,18 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		go handleConnection(c)
+		go handleConnection(c, jc)
 	}
 }
 
-func handleConnection(c net.Conn) {
+func handleConnection(c net.Conn, jc *queue.JobCenter) {
 	defer c.Close()
+
+	clientNum := rand.Int()
+
+	dr := &queue.DisconnectRequest{
+		ClientID: clientNum,
+	}
+	defer jc.DisconnectWorker(dr)
+
 }
