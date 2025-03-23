@@ -83,3 +83,9 @@ Might be a skill issue on my part.
 Relatively more simple than the last two challanges.
 
 Tried implementing the decoding as an io.Reader.
+
+Would've been easier if I didn't fumble with that stupid bug in Read()
+
+## 9
+
+Tried implementing the domain logic fully using channels. Pretty fun! Lots of boilerplate though.

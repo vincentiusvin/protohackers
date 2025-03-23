@@ -284,3 +284,44 @@ func TestWait(t *testing.T) {
 		t.Fatalf("wrong queue exp %v got %v", outQueue, inQueue)
 	}
 }
+
+func TestPerformance(t *testing.T) {
+	ctx := context.Background()
+	jc := queue.NewJobCenter(ctx)
+	done := make(chan struct{})
+
+	inQueue := "test"
+	inJob := json.RawMessage([]byte{})
+	reqs := 100000
+	clientId := jc.GetClientID()
+
+	go func() {
+		defer close(done)
+
+		for i := 0; i < reqs; i++ {
+			putReq := queue.PutRequest{
+				Request: queue.RequestPut,
+				Queue:   inQueue,
+				Pri:     i,
+				Job:     inJob,
+			}
+			jc.Put(&putReq)
+		}
+
+		for i := 0; i < reqs; i++ {
+			getReq := queue.GetRequest{
+				Request:  queue.RequestGet,
+				Queues:   []string{inQueue},
+				ClientID: clientId,
+			}
+			jc.Get(&getReq)
+		}
+	}()
+
+	select {
+	case <-time.After(5 * time.Second):
+		t.Fatalf("expected %v requests to finish under 5 secs.", reqs*2)
+	case <-done:
+	}
+
+}
