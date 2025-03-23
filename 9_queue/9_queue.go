@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"io"
@@ -41,24 +42,36 @@ func handleConnection(c net.Conn, jc *queue.JobCenter) {
 	}
 	defer jc.DisconnectWorker(dr)
 
-	dec := json.NewDecoder(c)
+	// instead of using json.NewDecoder, we chunk each request by newline.
+	// easier error handling this way
+	r := bufio.NewReader(c)
+
 	enc := json.NewEncoder(c)
 
 	for {
-		val, err := queue.Decode(dec)
+		b, err := r.ReadBytes('\n')
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		val, err := queue.Decode(b)
 		if err != nil {
 			if err == io.EOF {
 				return
-			} else {
-				log.Println(err)
-				err = enc.Encode(&queue.GeneralError{
-					Status: queue.StatusError,
-				})
-				if err != nil {
-					log.Println("failed to send error: %w", err)
-				}
-				continue
 			}
+
+			log.Printf("decoding error: %v. handling gracefully...\n", err)
+
+			err = enc.Encode(&queue.GeneralError{
+				Status: queue.StatusError,
+			})
+			if err != nil {
+				log.Println("failed to send error: %w", err)
+				return
+			}
+
+			continue
 		}
 
 		switch t := val.(type) {

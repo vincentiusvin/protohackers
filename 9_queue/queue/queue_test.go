@@ -203,3 +203,25 @@ func TestJobCenter(t *testing.T) {
 		jc.DisconnectWorker(req)
 	})
 }
+
+func TestJsonHandling(t *testing.T) {
+	in := "{\"request\":\"put\",\"queue\":\"queue1\",\"job\":{\"title\":\"example-job\"},\"pri\":123}\n"
+
+	val, err := queue.Decode(json.RawMessage(in))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	valCast, ok := val.(*queue.PutRequest)
+	if !ok {
+		t.Fatalf("wrong type %v %T", valCast, valCast)
+	}
+}
+
+func TestJsonHandlingFail(t *testing.T) {
+	in := "{\"request\":\"put\",\"queue\":\"queue1\",\"job\":{title:\"example-job\"},\"pri\":123}\n"
+	val, err := queue.Decode(json.RawMessage(in))
+	if err == nil {
+		t.Fatalf("supposed to error %v", val)
+	}
+}

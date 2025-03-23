@@ -5,14 +5,7 @@ import (
 	"fmt"
 )
 
-func Decode(dec *json.Decoder) (ret any, err error) {
-	var raw json.RawMessage
-	err = dec.Decode(&raw)
-
-	if err != nil {
-		return nil, fmt.Errorf("can't decode: %w", err)
-	}
-
+func Decode(raw json.RawMessage) (ret any, err error) {
 	var meta struct {
 		Request RequestType `json:"request"`
 	}
@@ -29,28 +22,28 @@ func Decode(dec *json.Decoder) (ret any, err error) {
 		if err != nil {
 			return nil, fmt.Errorf("can't unmarshall get request: %w", err)
 		}
-		ret = resp
+		ret = &resp
 	case RequestPut:
 		var resp PutRequest
 		err = json.Unmarshal(raw, &resp)
 		if err != nil {
 			return nil, fmt.Errorf("can't unmarshall put request: %w", err)
 		}
-		ret = resp
+		ret = &resp
 	case RequestAbort:
 		var resp AbortRequest
 		err = json.Unmarshal(raw, &resp)
 		if err != nil {
 			return nil, fmt.Errorf("can't unmarshall abort request: %w", err)
 		}
-		ret = resp
+		ret = &resp
 	case RequestDelete:
 		var resp DeleteRequest
 		err = json.Unmarshal(raw, &resp)
 		if err != nil {
 			return nil, fmt.Errorf("can't unmarshall delete request: %w", err)
 		}
-		ret = resp
+		ret = &resp
 	default:
 		return nil, fmt.Errorf("can't determine request type: %v", meta)
 	}
