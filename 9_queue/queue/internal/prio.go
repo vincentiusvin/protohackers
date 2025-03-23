@@ -34,7 +34,16 @@ func (q *Queue) AddJob(nj *Job) {
 	q.jobs = append(q.jobs, nj)
 }
 
-func (q *Queue) PeekPrioJob() *Job {
+func (q *Queue) GetJob(id int) *Job {
+	for _, c := range q.jobs {
+		if c.Id == id {
+			return c
+		}
+	}
+	return nil
+}
+
+func (q *Queue) GetPrioJob() *Job {
 	var maxJob *Job
 	for _, c := range q.jobs {
 		if c.ClientID != 0 {
@@ -48,8 +57,14 @@ func (q *Queue) PeekPrioJob() *Job {
 	return maxJob
 }
 
-func (q *Queue) HasJob(id int) bool {
-	return q.GetJob(id) != nil
+func (q *Queue) AbortJob(jobId int) {
+	j := q.GetJob(jobId)
+	j.ClientID = 0
+}
+
+func (q *Queue) MarkJobExecuting(jobId int, clientId int) {
+	j := q.GetJob(jobId)
+	j.ClientID = clientId
 }
 
 func (q *Queue) DeleteJob(id int) {
@@ -61,25 +76,6 @@ func (q *Queue) DeleteJob(id int) {
 		r = append(r, c)
 	}
 	q.jobs = r
-}
-
-func (q *Queue) GetJob(id int) *Job {
-	for _, c := range q.jobs {
-		if c.Id == id {
-			return c
-		}
-	}
-	return nil
-}
-
-func (q *Queue) AbortJob(jobId int) {
-	j := q.GetJob(jobId)
-	j.ClientID = 0
-}
-
-func (q *Queue) MarkJob(jobId int, clientId int) {
-	j := q.GetJob(jobId)
-	j.ClientID = clientId
 }
 
 func (q *Queue) DisconnectAllFrom(clientId int) []int {

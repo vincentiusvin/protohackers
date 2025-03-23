@@ -138,7 +138,7 @@ func (jc *JobCenter) processGet(gr *GetRequest) {
 		if !queues[q.Name] {
 			continue
 		}
-		j := q.PeekPrioJob()
+		j := q.GetPrioJob()
 		if maxJob == nil || maxJob.Prio < j.Prio {
 			maxJob = j
 			maxQueue = q
@@ -153,7 +153,7 @@ func (jc *JobCenter) processGet(gr *GetRequest) {
 		resp.Status = StatusNoJob
 		log.Printf("get ret:%v\n", resp.Status)
 	} else {
-		maxQueue.MarkJob(maxJob.Id, gr.ClientID)
+		maxQueue.MarkJobExecuting(maxJob.Id, gr.ClientID)
 
 		resp.Status = StatusOK
 		resp.Id = &maxJob.Id
@@ -249,7 +249,7 @@ func (jc *JobCenter) getQueue(name string) *internal.Queue {
 
 func (jc *JobCenter) findQueueFromJob(jobId int) *internal.Queue {
 	for _, q := range jc.Queues {
-		if q.HasJob(jobId) {
+		if q.GetJob(jobId) != nil {
 			return q
 		}
 	}
