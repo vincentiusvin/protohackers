@@ -91,16 +91,30 @@ func TestEncode(t *testing.T) {
 func TestJobCenter(t *testing.T) {
 	ctx := context.Background()
 	jc := queue.NewJobCenter(ctx)
-	req := &queue.PutRequest{
-		Request: "put",
-		Queue:   "test",
-		Pri:     123,
-		Job:     []byte("{\"f\":1}"),
-	}
-	resp := jc.Put(req)
 
-	if resp.Status != queue.StatusOK {
-		t.Fatalf("failed to put")
-	}
+	t.Run("put test", func(t *testing.T) {
+		req := &queue.PutRequest{
+			Request: "put",
+			Queue:   "test",
+			Pri:     123,
+			Job:     []byte("{\"f\":1}"),
+		}
+		resp := jc.Put(req)
 
+		if resp.Status != queue.StatusOK {
+			t.Fatalf("failed to put")
+		}
+	})
+
+	t.Run("get test", func(t *testing.T) {
+		req := &queue.GetRequest{
+			Request: "get",
+			Queues:  []string{"test"},
+		}
+		resp := jc.Get(req)
+
+		if resp.Status != queue.StatusOK {
+			t.Fatalf("failed to put")
+		}
+	})
 }

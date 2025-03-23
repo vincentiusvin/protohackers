@@ -41,6 +41,8 @@ type GetRequest struct {
 	Request RequestType `json:"request"`
 	Queues  []string    `json:"queues"`
 	Wait    bool        `json:"wait"` // optional, but zero value is fine here because only true is valid
+
+	respCh chan *GetResponse
 }
 
 type GetResponse struct {
@@ -49,6 +51,10 @@ type GetResponse struct {
 	Job    *json.RawMessage `json:"job,omitempty"`
 	Pri    *int             `json:"pri,omitempty"`
 	Queue  *string          `json:"queue,omitempty"`
+}
+
+func (gr *GetRequest) init() {
+	gr.respCh = make(chan *GetResponse)
 }
 
 type AbortRequest struct {

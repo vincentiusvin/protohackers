@@ -26,7 +26,6 @@ func newQueue(name string) *Queue {
 
 type JobCenter struct {
 	Queues map[string]*Queue
-	lkpJob map[int]*Job // a job id cache to quickly fetch jobs.
 
 	putCh   chan *PutRequest
 	getCh   chan *GetRequest
@@ -37,7 +36,6 @@ type JobCenter struct {
 func NewJobCenter(ctx context.Context) *JobCenter {
 	jc := &JobCenter{
 		Queues: make(map[string]*Queue),
-		lkpJob: make(map[int]*Job),
 
 		putCh:   make(chan *PutRequest),
 		getCh:   make(chan *GetRequest),
@@ -54,8 +52,10 @@ func (jc *JobCenter) Put(pr *PutRequest) *PutResponse {
 	return <-pr.respCh
 }
 
-func (jc *JobCenter) Get(gr *GetRequest) {
+func (jc *JobCenter) Get(gr *GetRequest) *GetResponse {
+	gr.init()
 	jc.getCh <- gr
+	return <-gr.respCh
 }
 
 func (jc *JobCenter) Delete(dr *DeleteRequest) {
@@ -98,17 +98,16 @@ func (jc *JobCenter) processPut(pr *PutRequest) {
 }
 
 func (jc *JobCenter) processDelete(dr *DeleteRequest) {
-	job := jc.getJob(dr.Id)
-	q := jc.getQueue(job.Queue)
+	job, queue := jc.findJob(dr.Id)
 
 	filtered := make([]*Job, 0)
-	for _, c := range q.Jobs {
+	for _, c := range queue.Jobs {
 		if c == job {
 			continue
 		}
 		filtered = append(filtered, c)
 	}
-	q.Jobs = filtered
+	queue.Jobs = filtered
 }
 
 func (jc *JobCenter) getQueue(name string) *Queue {
@@ -118,6 +117,13 @@ func (jc *JobCenter) getQueue(name string) *Queue {
 	return jc.Queues[name]
 }
 
-func (jc *JobCenter) getJob(id int) *Job {
-	return jc.lkpJob[id]
+func (jc *JobCenter) findJob(id int) (*Job, *Queue) {
+	for _, q := range jc.Queues {
+		for _, j := range q.Jobs {
+			if j.Id == id {
+				return j, q
+			}
+		}
+	}
+	return nil, nil
 }
