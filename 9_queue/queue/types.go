@@ -40,9 +40,9 @@ type GetRequest struct {
 type GetResponse struct {
 	Status ResponseStatus   `json:"status"`
 	Id     *int             `json:"id,omitempty"`
-	Queue  *string          `json:"queue,omitempty"`
-	Pri    *int             `json:"pri,omitempty"`
 	Job    *json.RawMessage `json:"job,omitempty"`
+	Pri    *int             `json:"pri,omitempty"`
+	Queue  *string          `json:"queue,omitempty"`
 }
 
 type AbortRequest struct {

@@ -32,21 +32,57 @@ func TestDecode(t *testing.T) {
 	}
 }
 
-func TestEncode(t *testing.T) {
-	in := queue.GetResponse{
-		Status: queue.StatusNoJob,
-	}
-	exp := "{\"status\":\"no-job\"}"
+func intPtr(v int) *int {
+	return &v
+}
 
-	b := new(bytes.Buffer)
-	enc := json.NewEncoder(b)
-	err := enc.Encode(in)
-	if err != nil {
-		t.Fatal(err)
+func strPtr(v string) *string {
+	return &v
+}
+
+func rawMsgPtr(v json.RawMessage) *json.RawMessage {
+	return &v
+}
+
+func TestEncode(t *testing.T) {
+	type encodeCases struct {
+		in  any
+		exp string
 	}
-	out := b.String()
-	out = strings.TrimSpace(out)
-	if out != exp {
-		t.Fatalf("decode fail exp %v got %v", exp, out)
+
+	runTest := func(t *testing.T, cs []encodeCases) {
+		for _, c := range cs {
+			b := new(bytes.Buffer)
+			enc := json.NewEncoder(b)
+			err := enc.Encode(c.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			out := b.String()
+			out = strings.TrimSpace(out)
+			if out != c.exp {
+				t.Fatalf("decode fail exp %v got %v", c.exp, out)
+			}
+		}
 	}
+
+	t.Run("get cases", func(t *testing.T) {
+		cases := []encodeCases{
+			{
+				in:  queue.GetResponse{Status: queue.StatusNoJob},
+				exp: "{\"status\":\"no-job\"}",
+			},
+			{
+				in: queue.GetResponse{
+					Status: queue.StatusOK,
+					Id:     intPtr(12345),
+					Pri:    intPtr(123),
+					Queue:  strPtr("queue1"),
+					Job:    rawMsgPtr([]byte("{\"f\":1}")),
+				},
+				exp: "{\"status\":\"ok\",\"id\":12345,\"job\":{\"f\":1},\"pri\":123,\"queue\":\"queue1\"}",
+			},
+		}
+		runTest(t, cases)
+	})
 }
