@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"log"
 	"net"
 	"protohackers/9_queue/queue"
@@ -39,4 +41,39 @@ func handleConnection(c net.Conn, jc *queue.JobCenter) {
 	}
 	defer jc.DisconnectWorker(dr)
 
+	dec := json.NewDecoder(c)
+	enc := json.NewEncoder(c)
+
+	for {
+		val, err := queue.Decode(dec)
+		if err != nil {
+			if err == io.EOF {
+				return
+			} else {
+				log.Println(err)
+				continue
+			}
+		}
+
+		switch t := val.(type) {
+		case *queue.GetRequest:
+			t.ClientID = clientNum
+			resp := jc.Get(t)
+			err = enc.Encode(resp)
+		case *queue.PutRequest:
+			resp := jc.Put(t)
+			err = enc.Encode(resp)
+		case *queue.DeleteRequest:
+			resp := jc.Delete(t)
+			err = enc.Encode(resp)
+		case *queue.AbortRequest:
+			t.ClientID = clientNum
+			resp := jc.Abort(t)
+			err = enc.Encode(resp)
+		}
+
+		if err != nil {
+			log.Println(err)
+		}
+	}
 }
