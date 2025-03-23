@@ -2,40 +2,14 @@ package queue
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
+	"protohackers/9_queue/queue/internal"
 	"time"
 )
 
-type JobStatus string
-
-type Job struct {
-	Id    int
-	Job   json.RawMessage
-	Prio  int
-	Queue string
-
-	// client id currently working the job.
-	// obtain from GetClientID for every session.
-	// cannot be zero.
-	ClientID int
-}
-
-type Queue struct {
-	Name string
-	Jobs []*Job
-}
-
-func newQueue(name string) *Queue {
-	return &Queue{
-		Name: name,
-		Jobs: make([]*Job, 0),
-	}
-}
-
 type JobCenter struct {
-	Queues map[string]*Queue
+	Queues map[string]*internal.Queue
 
 	putCh   chan *PutRequest
 	getCh   chan *GetRequest
@@ -51,7 +25,7 @@ type JobCenter struct {
 
 func NewJobCenter(ctx context.Context) *JobCenter {
 	jc := &JobCenter{
-		Queues: make(map[string]*Queue),
+		Queues: make(map[string]*internal.Queue),
 
 		putCh:   make(chan *PutRequest),
 		getCh:   make(chan *GetRequest),
@@ -133,7 +107,7 @@ func (jc *JobCenter) processPut(pr *PutRequest) {
 
 	var resp PutResponse
 	q := jc.getQueue(pr.Queue)
-	nj := &Job{
+	nj := &internal.Job{
 		Id:    jc.getJobID(),
 		Job:   pr.Job,
 		Prio:  pr.Pri,
@@ -151,7 +125,7 @@ func (jc *JobCenter) processPut(pr *PutRequest) {
 
 func (jc *JobCenter) processGet(gr *GetRequest) {
 	log.Printf("get qs:%v w:%v", gr.Queues, gr.Wait)
-	var maxJob *Job
+	var maxJob *internal.Job
 	var resp GetResponse
 
 	queues := make(map[string]bool)
@@ -220,7 +194,7 @@ func (jc *JobCenter) processDelete(dr *DeleteRequest) {
 	job, queue := jc.findJob(dr.Id)
 
 	if job != nil && queue != nil {
-		filtered := make([]*Job, 0)
+		filtered := make([]*internal.Job, 0)
 		found := false
 		for _, c := range queue.Jobs {
 			if c == job {
@@ -270,14 +244,14 @@ func (jc *JobCenter) processWaitingRequests() {
 	}
 }
 
-func (jc *JobCenter) getQueue(name string) *Queue {
+func (jc *JobCenter) getQueue(name string) *internal.Queue {
 	if _, ok := jc.Queues[name]; !ok {
-		jc.Queues[name] = newQueue(name)
+		jc.Queues[name] = internal.NewQueue(name)
 	}
 	return jc.Queues[name]
 }
 
-func (jc *JobCenter) findJob(id int) (*Job, *Queue) {
+func (jc *JobCenter) findJob(id int) (*internal.Job, *internal.Queue) {
 	for _, q := range jc.Queues {
 		for _, j := range q.Jobs {
 			if j.Id == id {
