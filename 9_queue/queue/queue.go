@@ -3,6 +3,7 @@ package queue
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"math/rand"
 )
 
@@ -13,6 +14,8 @@ type Job struct {
 	Job   json.RawMessage
 	Prio  int
 	Queue string
+
+	ClientID int // client id currently working the job
 }
 
 type Queue struct {
@@ -45,6 +48,7 @@ func NewJobCenter(ctx context.Context) *JobCenter {
 		delCh:   make(chan *DeleteRequest),
 		abortCh: make(chan *AbortRequest),
 	}
+	log.Printf("initialized new job center\n")
 	go jc.process(ctx)
 	return jc
 }
@@ -61,12 +65,16 @@ func (jc *JobCenter) Get(gr *GetRequest) *GetResponse {
 	return <-gr.respCh
 }
 
-func (jc *JobCenter) Delete(dr *DeleteRequest) {
-	jc.delCh <- dr
+func (jc *JobCenter) Abort(ar *AbortRequest) *AbortResponse {
+	ar.init()
+	jc.abortCh <- ar
+	return <-ar.respCh
 }
 
-func (jc *JobCenter) Abort(ar *AbortRequest) {
-	jc.abortCh <- ar
+func (jc *JobCenter) Delete(dr *DeleteRequest) *DeleteResponse {
+	dr.init()
+	jc.delCh <- dr
+	return <-dr.respCh
 }
 
 func (jc *JobCenter) process(ctx context.Context) {
@@ -76,16 +84,21 @@ func (jc *JobCenter) process(ctx context.Context) {
 			return
 		case pr := <-jc.putCh:
 			jc.processPut(pr)
-		case dr := <-jc.delCh:
-			jc.processDelete(dr)
 		case gr := <-jc.getCh:
 			jc.processGet(gr)
+		case ar := <-jc.abortCh:
+			jc.processAbort(ar)
+		case dr := <-jc.delCh:
+			jc.processDelete(dr)
 		}
 	}
 }
 
 // return the id of the job
 func (jc *JobCenter) processPut(pr *PutRequest) {
+	log.Printf("put q:%v pri:%v\n", pr.Queue, pr.Pri)
+
+	var resp PutResponse
 	q := jc.getQueue(pr.Queue)
 	nj := &Job{
 		Id:    rand.Int(),
@@ -94,16 +107,19 @@ func (jc *JobCenter) processPut(pr *PutRequest) {
 		Queue: pr.Queue,
 	}
 
+	resp.Status = StatusOK
+	resp.Id = nj.Id
+
 	q.Jobs = append(q.Jobs, nj)
 
-	pr.respCh <- &PutResponse{
-		Status: StatusOK,
-		Id:     nj.Id,
-	}
+	log.Printf("put ret:%v\n", resp.Status)
+	pr.respCh <- &resp
 }
 
 func (jc *JobCenter) processGet(gr *GetRequest) {
+	log.Printf("get qs:%v w:%v", gr.Queues, gr.Wait)
 	var maxJob *Job
+	var resp GetResponse
 
 	for _, q := range jc.Queues {
 		for _, j := range q.Jobs {
@@ -114,23 +130,46 @@ func (jc *JobCenter) processGet(gr *GetRequest) {
 	}
 
 	if maxJob == nil {
-		gr.respCh <- &GetResponse{
-			Status: StatusNoJob,
+		if !gr.Wait {
+			resp.Status = StatusNoJob
+		} else {
+			panic("wait not implemented yet")
 		}
 	} else {
-		gr.respCh <- &GetResponse{
-			Status: StatusOK,
-			Id:     &maxJob.Id,
-			Job:    &maxJob.Job,
-			Pri:    &maxJob.Prio,
-			Queue:  &maxJob.Queue,
-		}
+		resp.Status = StatusOK
+		resp.Id = &maxJob.Id
+		resp.Job = &maxJob.Job
+		resp.Pri = &maxJob.Prio
+		resp.Queue = &maxJob.Queue
 	}
+
+	log.Printf("get ret:%v\n", resp.Status)
+	gr.respCh <- &resp
+}
+
+func (jc *JobCenter) processAbort(ar *AbortRequest) {
+	log.Printf("abort id:%v", ar.Id)
+	job, _ := jc.findJob(ar.Id)
+
+	var resp AbortResponse
+
+	if job == nil {
+		resp.Status = StatusNoJob
+	} else if job.ClientID != ar.ClientID {
+		resp.Status = StatusError
+	} else {
+		resp.Status = StatusOK
+	}
+
+	log.Printf("abort ret:%v\n", resp.Status)
+	ar.respCh <- &resp
 }
 
 func (jc *JobCenter) processDelete(dr *DeleteRequest) {
-	job, queue := jc.findJob(dr.Id)
+	log.Printf("delete id:%v", dr.Id)
+	var resp DeleteResponse
 
+	job, queue := jc.findJob(dr.Id)
 	filtered := make([]*Job, 0)
 	for _, c := range queue.Jobs {
 		if c == job {
@@ -139,6 +178,9 @@ func (jc *JobCenter) processDelete(dr *DeleteRequest) {
 		filtered = append(filtered, c)
 	}
 	queue.Jobs = filtered
+
+	log.Printf("delete ret:%v", resp.Status)
+	dr.respCh <- &resp
 }
 
 func (jc *JobCenter) getQueue(name string) *Queue {

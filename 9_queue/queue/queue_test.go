@@ -122,7 +122,7 @@ func TestJobCenter(t *testing.T) {
 		resp := jc.Get(req)
 
 		if resp.Status != queue.StatusOK {
-			t.Fatalf("failed to put")
+			t.Fatalf("failed to get")
 		}
 
 		outId := *resp.Id
@@ -141,6 +141,30 @@ func TestJobCenter(t *testing.T) {
 		}
 		if outQueue != inQueue {
 			t.Fatalf("wrong queue exp %v got %v", outQueue, inQueue)
+		}
+	})
+
+	t.Run("abort test", func(t *testing.T) {
+		req := &queue.AbortRequest{
+			Request: "abort",
+			Id:      jobId,
+		}
+		resp := jc.Abort(req)
+
+		if resp.Status != queue.StatusOK {
+			t.Fatalf("failed to delete")
+		}
+	})
+
+	t.Run("abort not found test", func(t *testing.T) {
+		req := &queue.AbortRequest{
+			Request: "abort",
+			Id:      jobId + 1,
+		}
+		resp := jc.Abort(req)
+
+		if resp.Status != queue.StatusNoJob {
+			t.Fatalf("aborted nonexistent request")
 		}
 	})
 }

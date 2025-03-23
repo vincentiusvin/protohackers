@@ -60,17 +60,31 @@ func (gr *GetRequest) init() {
 type AbortRequest struct {
 	Request RequestType `json:"request"`
 	Id      int         `json:"id"`
+
+	ClientID int
+
+	respCh chan *AbortResponse
 }
 
 type AbortResponse struct {
 	Status ResponseStatus `json:"status"`
 }
 
+func (ar *AbortRequest) init() {
+	ar.respCh = make(chan *AbortResponse)
+}
+
 type DeleteRequest struct {
 	Request RequestType `json:"request"`
 	Id      int         `json:"id"`
+
+	respCh chan *DeleteResponse
 }
 
 type DeleteResponse struct {
 	Status ResponseStatus `json:"status"`
+}
+
+func (ar *DeleteRequest) init() {
+	ar.respCh = make(chan *DeleteResponse)
 }
