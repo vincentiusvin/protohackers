@@ -92,7 +92,7 @@ func TestJobCenter(t *testing.T) {
 	ctx := context.Background()
 	jc := queue.NewJobCenter(ctx)
 
-	clientNum := 100
+	clientNum := jc.GetClientID()
 	inPri := 123
 	inQueue := "queue1"
 	inJob := json.RawMessage([]byte("{\"f\":1}"))

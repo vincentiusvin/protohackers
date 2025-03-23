@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"math/rand"
 )
 
 type JobStatus string
@@ -38,6 +37,9 @@ type JobCenter struct {
 	delCh   chan *DeleteRequest
 	abortCh chan *AbortRequest
 	discCh  chan *DisconnectRequest
+
+	currJobId    int // monotonic job id
+	currClientID int // monotonic client id
 }
 
 func NewJobCenter(ctx context.Context) *JobCenter {
@@ -85,6 +87,13 @@ func (jc *JobCenter) DisconnectWorker(dr *DisconnectRequest) {
 	<-dr.respCh
 }
 
+// get a monotonically increasing client id.
+// will never return zero
+func (jc *JobCenter) GetClientID() int {
+	jc.currClientID += 1
+	return jc.currClientID
+}
+
 func (jc *JobCenter) process(ctx context.Context) {
 	for {
 		select {
@@ -111,7 +120,7 @@ func (jc *JobCenter) processPut(pr *PutRequest) {
 	var resp PutResponse
 	q := jc.getQueue(pr.Queue)
 	nj := &Job{
-		Id:    rand.Int(),
+		Id:    jc.getJobID(),
 		Job:   pr.Job,
 		Prio:  pr.Pri,
 		Queue: pr.Queue,
@@ -234,4 +243,11 @@ func (jc *JobCenter) findJob(id int) (*Job, *Queue) {
 		}
 	}
 	return nil, nil
+}
+
+// get a monotonically increasing job id.
+// will never return zero
+func (jc *JobCenter) getJobID() int {
+	jc.currJobId += 1
+	return jc.currJobId
 }

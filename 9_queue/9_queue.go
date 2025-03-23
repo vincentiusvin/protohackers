@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"math/rand"
 	"net"
 	"protohackers/9_queue/queue"
 )
@@ -33,7 +32,7 @@ func main() {
 func handleConnection(c net.Conn, jc *queue.JobCenter) {
 	defer c.Close()
 
-	clientNum := rand.Int()
+	clientNum := jc.GetClientID()
 
 	dr := &queue.DisconnectRequest{
 		ClientID: clientNum,
