@@ -143,7 +143,15 @@ func (jc *JobCenter) processGet(gr *GetRequest) {
 	var maxJob *Job
 	var resp GetResponse
 
+	queues := make(map[string]bool)
+	for _, q := range gr.Queues {
+		queues[q] = true
+	}
+
 	for _, q := range jc.Queues {
+		if !queues[q.Name] {
+			continue
+		}
 		for _, j := range q.Jobs {
 			if j.ClientID != 0 {
 				continue

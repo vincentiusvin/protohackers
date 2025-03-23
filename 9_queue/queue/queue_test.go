@@ -115,6 +115,19 @@ func TestJobCenter(t *testing.T) {
 		jobId = resp.Id
 	})
 
+	t.Run("get nonexistent test", func(t *testing.T) {
+		req := &queue.GetRequest{
+			Request:  queue.RequestGet,
+			Queues:   []string{inQueue + "abc"},
+			ClientID: clientNum,
+		}
+		resp := jc.Get(req)
+
+		if resp.Status != queue.StatusNoJob {
+			t.Fatalf("got nonexistent job")
+		}
+	})
+
 	t.Run("get test", func(t *testing.T) {
 		req := &queue.GetRequest{
 			Request:  queue.RequestGet,
