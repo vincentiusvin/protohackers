@@ -3,6 +3,7 @@ package queue
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 )
 
@@ -43,6 +44,8 @@ type JobCenter struct {
 
 	currJobId    int // monotonic job id
 	currClientID int // monotonic client id
+
+	waitingRequests []*GetRequest
 }
 
 func NewJobCenter(ctx context.Context) *JobCenter {
@@ -99,6 +102,7 @@ func (jc *JobCenter) GetClientID() int {
 
 func (jc *JobCenter) process(ctx context.Context) {
 	for {
+		processWaiting := true
 		select {
 		case <-ctx.Done():
 			return
@@ -106,12 +110,16 @@ func (jc *JobCenter) process(ctx context.Context) {
 			jc.processPut(pr)
 		case gr := <-jc.getCh:
 			jc.processGet(gr)
+			processWaiting = false // dont need to handle waiting requests if last was a get
 		case ar := <-jc.abortCh:
 			jc.processAbort(ar)
 		case dr := <-jc.delCh:
 			jc.processDelete(dr)
 		case dc := <-jc.discCh:
 			jc.processDisconnection(dc)
+		}
+		if processWaiting {
+			jc.processWaitingRequests()
 		}
 	}
 }
@@ -163,11 +171,11 @@ func (jc *JobCenter) processGet(gr *GetRequest) {
 	}
 
 	if maxJob == nil {
-		if !gr.Wait {
-			resp.Status = StatusNoJob
-		} else {
-			panic("wait not implemented yet")
+		if gr.Wait {
+			jc.waitingRequests = append(jc.waitingRequests, gr)
+			return
 		}
+		resp.Status = StatusNoJob
 		log.Printf("get ret:%v\n", resp.Status)
 	} else {
 		maxJob.ClientID = gr.ClientID
@@ -207,21 +215,25 @@ func (jc *JobCenter) processDelete(dr *DeleteRequest) {
 	var resp DeleteResponse
 
 	job, queue := jc.findJob(dr.Id)
-	filtered := make([]*Job, 0)
-	found := false
-	for _, c := range queue.Jobs {
-		if c == job {
-			found = true
-			continue
-		}
-		filtered = append(filtered, c)
-	}
-	queue.Jobs = filtered
 
-	if found {
+	if job != nil && queue != nil {
+		filtered := make([]*Job, 0)
+		found := false
+		for _, c := range queue.Jobs {
+			if c == job {
+				found = true
+				continue
+			}
+			filtered = append(filtered, c)
+		}
+		queue.Jobs = filtered
+		if !found {
+			panic(fmt.Sprintf("expected job %v to be in queue %v", job, queue))
+		}
 		resp.Status = StatusOK
 	} else {
 		resp.Status = StatusNoJob
+
 	}
 
 	log.Printf("delete ret:%v", resp.Status)
@@ -240,6 +252,19 @@ func (jc *JobCenter) processDisconnection(dr *DisconnectRequest) {
 	}
 	log.Printf("disconnected %v. aborted %v", dr.ClientID, aborted)
 	dr.respCh <- struct{}{}
+}
+
+func (jc *JobCenter) processWaitingRequests() {
+	if jc.waitingRequests == nil {
+		return
+	}
+
+	processing := jc.waitingRequests
+	jc.waitingRequests = nil
+
+	for _, c := range processing {
+		jc.processGet(c) // this will readd to waitingRequests if still unresolved
+	}
 }
 
 func (jc *JobCenter) getQueue(name string) *Queue {
