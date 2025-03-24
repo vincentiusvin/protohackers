@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 )
@@ -39,4 +40,13 @@ func TestFileName(t *testing.T) {
 			t.Fatalf("failed to parse filename. exp %v got %v", c.exp, out)
 		}
 	}
+}
+
+func TestFile(t *testing.T) {
+	f := newFile("testing")
+	f.addChild("joe")
+	f.addChild("jill")
+	f2 := f.getChild("joe")
+	f2.addChild("james")
+	fmt.Println(f)
 }

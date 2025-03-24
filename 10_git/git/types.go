@@ -2,37 +2,76 @@ package git
 
 import "fmt"
 
-type file struct {
+var (
+	errNodeExist    = fmt.Errorf("file already exists")
+	errRevNotFound  = fmt.Errorf("revision not found")
+	errFileNotFound = fmt.Errorf("file not found")
+)
+
+type file interface {
+	getName() string
+	getChildren() (f []file)
+	getChild(name string) (f file)
+	addChild(name string) (f file, err error)
+	getRevision(rev int) (data []byte, err error)
+	addRevision(data []byte) (revnum int)
+}
+
+type cfile struct {
 	name  string
-	child map[string]*file
+	child map[string]file
 	// slice of []byte
 	// revisions[0] means the file revisions of first revision
 	revisions [][]byte
 }
 
-func newNode(name string) *file {
-	return &file{
+func newFile(name string) file {
+	f := &cfile{
 		name:      name,
-		child:     make(map[string]*file),
+		child:     make(map[string]file),
 		revisions: make([][]byte, 0),
 	}
+	return f
 }
 
-func (d *file) getChild(name string) *file {
+func (d *cfile) getName() string {
+	return d.name
+}
+
+func (d *cfile) getChild(name string) file {
 	return d.child[name]
 }
 
-var errNodeExist = fmt.Errorf("file already exists")
-
-func (d *file) addNode(n file) (*file, error) {
-	prev := d.child[n.name]
+func (d *cfile) addChild(name string) (file, error) {
+	prev := d.getChild(name)
 	if prev != nil {
 		return nil, errNodeExist
 	}
-	return prev, nil
+	d.child[name] = newFile(name)
+	return d.child[name], nil
 }
 
-func (f *file) addRevision(content []byte) int {
-	f.revisions = append(f.revisions, content)
+func (f *cfile) getRevision(rev int) ([]byte, error) {
+	l := len(f.revisions)
+	if l == 0 {
+		return nil, errFileNotFound
+	}
+	rev -= 1
+	if rev < 0 || rev >= l {
+		return nil, errRevNotFound
+	}
+	return f.revisions[rev], nil
+}
+
+func (f *cfile) addRevision(data []byte) int {
+	f.revisions = append(f.revisions, data)
 	return len(f.revisions)
+}
+
+func (f *cfile) getChildren() []file {
+	ret := make([]file, 0)
+	for _, fc := range f.child {
+		ret = append(ret, fc)
+	}
+	return ret
 }

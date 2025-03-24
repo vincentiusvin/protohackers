@@ -6,18 +6,18 @@ import (
 )
 
 type VersionControl struct {
-	root *file
+	root file
 }
 
 func NewVersionControl() *VersionControl {
 	return &VersionControl{
-		root: newNode(""),
+		root: newFile(""),
 	}
 }
 
 // put file
 // automatically handle revision
-func (v *VersionControl) PutFile(abs_path string, content []byte) (*file, error) {
+func (v *VersionControl) PutFile(abs_path string, content []byte) (file, error) {
 	return nil, nil
 }
 
@@ -32,7 +32,7 @@ func (v *VersionControl) ListFile(dir string) {
 
 }
 
-func (v *VersionControl) getFile(abs_path string) (*file, error) {
+func (v *VersionControl) getFile(abs_path string) (file, error) {
 	_, err := splitPaths(abs_path)
 	if err != nil {
 		return nil, fmt.Errorf("can't put: %w", err)
