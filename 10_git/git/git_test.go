@@ -1,62 +1,60 @@
-package git
+package git_test
 
 import (
-	"slices"
+	"protohackers/10_git/git"
 	"testing"
 )
 
-func TestFileName(t *testing.T) {
-	type fileNameCases struct {
-		in  string
-		exp []string
+func TestPut(t *testing.T) {
+	type putCases struct {
+		in string
+		ok bool
 	}
-	cases := []fileNameCases{
+
+	cases := []putCases{
 		{
-			in:  "kucing/meong",
-			exp: nil,
+			in: "/dir1/dir2/file",
+			ok: true,
 		},
 		{
-			in:  "/kucing//meong",
-			exp: nil,
+			in: "/dir1/dir2/file",
+			ok: true,
 		},
 		{
-			in:  "/",
-			exp: nil,
+			in: "kucing/meong",
+			ok: false,
 		},
 		{
-			in:  "/a",
-			exp: []string{"a"},
+			in: "/kucing//meong",
+			ok: false,
 		},
 		{
-			in:  "/kucing/meong",
-			exp: []string{"kucing", "meong"},
+			in: "/",
+			ok: false,
+		},
+		{
+			in: "/a",
+			ok: true,
+		},
+		{
+			in: "/kucing/meong",
+			ok: true,
 		},
 	}
 
 	for _, c := range cases {
-		out, _ := splitPaths(c.in)
-		if !slices.Equal(out, c.exp) {
-			t.Fatalf("failed to parse filename. exp %v got %v", c.exp, out)
-		}
-	}
-}
-
-func TestFile(t *testing.T) {
-	v := NewVersionControl()
-
-	f, err := v.getFile("/dir1/dir2/file", true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if f.getName() != "file" {
-		t.Fatalf("wrong file %v", f)
-	}
-}
-
-func TestFile2(t *testing.T) {
-	v := NewVersionControl()
-	_, err := v.getFile("/dir1/dir2/file", false)
-	if err == nil {
-		t.Fatal("expected error")
+		t.Run("put", func(t *testing.T) {
+			v := git.NewVersionControl()
+			_, err := v.PutFile(c.in, []byte{0x01})
+			if c.ok {
+				if err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				if err == nil {
+					t.Fatalf("expected error")
+				}
+			}
+		})
 	}
 }

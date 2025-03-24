@@ -17,8 +17,13 @@ func NewVersionControl() *VersionControl {
 
 // put file
 // automatically handle revision
-func (v *VersionControl) PutFile(abs_path string, content []byte) (file, error) {
-	return nil, nil
+func (v *VersionControl) PutFile(abs_path string, content []byte) (int, error) {
+	f, err := v.getFile(abs_path, true)
+	if err != nil {
+		return 0, err
+	}
+	revnum := f.addRevision(content)
+	return revnum, nil
 }
 
 // get content of file
