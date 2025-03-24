@@ -3,10 +3,12 @@ package git
 import (
 	"fmt"
 	"strings"
+	"sync"
 )
 
 type VersionControl struct {
 	root file
+	mu   sync.Mutex
 }
 
 func NewVersionControl() *VersionControl {
@@ -18,6 +20,9 @@ func NewVersionControl() *VersionControl {
 // put file
 // automatically handle revision
 func (v *VersionControl) PutFile(abs_path string, content []byte) (int, error) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	f, err := v.getFile(abs_path, true)
 	if err != nil {
 		return 0, err
@@ -29,6 +34,9 @@ func (v *VersionControl) PutFile(abs_path string, content []byte) (int, error) {
 // get content of file
 // revision of 0 means latest revision
 func (v *VersionControl) GetFile(abs_path string, revision int) ([]byte, error) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	f, err := v.getFile(abs_path, false)
 	if err != nil {
 		return nil, err
@@ -41,8 +49,15 @@ func (v *VersionControl) GetFile(abs_path string, revision int) ([]byte, error) 
 }
 
 // list files in a directory
-func (v *VersionControl) ListFile(dir string) {
+func (v *VersionControl) ListFile(dir string) ([]file, error) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
 
+	f, err := v.getFile(dir, false)
+	if err != nil {
+		return nil, err
+	}
+	return f.getChildren(), nil
 }
 
 func (v *VersionControl) getFile(abs_path string, force bool) (file, error) {
