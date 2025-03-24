@@ -140,7 +140,7 @@ func TestList(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run("case", func(t *testing.T) {
-			ret, _ := f.v.ListFile("/dir1")
+			ret, _ := f.v.ListFile(c.in)
 			if !reflect.DeepEqual(ret, c.entries) {
 				t.Fatalf("wrong entires exp %v got %v", c.entries, ret)
 			}
