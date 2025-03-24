@@ -12,10 +12,12 @@ type fixtureRet struct {
 	f1   string
 	f2   string
 	f3   string
+	f4   string
 	f1b1 []byte
 	f1b2 []byte
 	f2b1 []byte
 	f3b1 []byte
+	f4b1 []byte
 }
 
 func vcFixture() fixtureRet {
@@ -24,22 +26,27 @@ func vcFixture() fixtureRet {
 	f1b2 := []byte{0x01, 0x04}
 	f2b1 := []byte{0x01, 0x03}
 	f3b1 := []byte{0x01, 0x07}
+	f4b1 := []byte{0x01, 0x08}
 	f1 := "/dir1/dirfile/file"
 	f2 := "/dir1/dirfile"
 	f3 := "/dir1/dir/file2"
+	f4 := "/dir1/dir/file1"
 	v.PutFile(f1, f1b1)
 	v.PutFile(f1, f1b2)
 	v.PutFile(f2, f2b1)
 	v.PutFile(f3, f3b1)
+	v.PutFile(f4, f4b1)
 	return fixtureRet{
 		v:    v,
 		f1:   f1,
 		f2:   f2,
 		f3:   f3,
+		f4:   f4,
 		f1b1: f1b1,
 		f1b2: f1b2,
 		f2b1: f2b1,
 		f3b1: f3b1,
+		f4b1: f4b1,
 	}
 }
 
@@ -118,12 +125,12 @@ func TestList(t *testing.T) {
 			in: "/dir1",
 			entries: []git.FileListItem{
 				{
-					Name: "dirfile",
-					Info: "r1",
-				},
-				{
 					Name: "dir/",
 					Info: "DIR",
+				},
+				{
+					Name: "dirfile",
+					Info: "r1",
 				},
 			},
 		},
@@ -133,6 +140,19 @@ func TestList(t *testing.T) {
 				{
 					Name: "dir1/",
 					Info: "DIR",
+				},
+			},
+		},
+		{
+			in: "/dir1/dir",
+			entries: []git.FileListItem{
+				{
+					Name: "file1",
+					Info: "r1",
+				},
+				{
+					Name: "file2",
+					Info: "r1",
 				},
 			},
 		},

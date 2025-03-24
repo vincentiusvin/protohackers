@@ -2,6 +2,7 @@ package git
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -81,6 +82,16 @@ func (v *VersionControl) ListFile(dir string) ([]FileListItem, error) {
 			ret[i].Info = fmt.Sprintf("r%v", revnum)
 		}
 	}
+
+	slices.SortFunc(ret, func(a, b FileListItem) int {
+		if a.Name > b.Name {
+			return 1
+		} else if b.Name > a.Name {
+			return -1
+		} else {
+			return 0
+		}
+	})
 
 	return ret, nil
 }
