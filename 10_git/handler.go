@@ -27,6 +27,7 @@ func handleIO(rw *bufio.ReadWriter, id string, vc *git.VersionControl) {
 	}
 
 	for {
+		reply("READY")
 		line, err := rw.ReadString('\n')
 		if err != nil {
 			log("%v", err)

@@ -11,18 +11,28 @@ import (
 func TestHandler(t *testing.T) {
 	_, in, out := rw()
 
+	consumeReady := func() {
+		r := <-out
+		if r != "READY" {
+			t.Fatalf("expected ready got %v", r)
+		}
+	}
+
+	consumeReady()
 	in <- "GET"
 	rep := <-out
 	if rep[:3] != "ERR" {
 		t.Fatalf("expected error %v", rep)
 	}
 
+	consumeReady()
 	in <- "PUT /dir1/file1 7\nkucing" // 7 since our writer appends a \n
 	rep = <-out
 	if rep != "OK r1" {
 		t.Fatalf("expected success %v", rep)
 	}
 
+	consumeReady()
 	in <- "GET /dir1/file1 r1"
 	rep = <-out
 	if rep != "OK 7" {
@@ -33,6 +43,7 @@ func TestHandler(t *testing.T) {
 		t.Fatalf("expected kucing got %v", data)
 	}
 
+	consumeReady()
 	in <- "LIST /dir1"
 	rep = <-out
 	if rep != "OK 1" {
