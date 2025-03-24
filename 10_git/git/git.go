@@ -1,6 +1,7 @@
 package git
 
 import (
+	"bytes"
 	"fmt"
 	"slices"
 	"strings"
@@ -20,7 +21,7 @@ func NewVersionControl() *VersionControl {
 
 // put file
 // automatically handle revision
-func (v *VersionControl) PutFile(abs_path string, content []byte) (int, error) {
+func (v *VersionControl) PutFile(abs_path string, newData []byte) (int, error) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 
@@ -31,8 +32,21 @@ func (v *VersionControl) PutFile(abs_path string, content []byte) (int, error) {
 	if f == v.root {
 		return 0, errFileName
 	}
-	revnum := f.addRevision(content)
-	return revnum, nil
+
+	// check if same as prev
+	lastRev := f.getRevisionNumber()
+	if lastRev != 0 {
+		prevData, err := f.getRevision(lastRev)
+		if err != nil {
+			return 0, errFileNotFound
+		}
+
+		if bytes.Equal(prevData, newData) {
+			return lastRev, nil
+		}
+	}
+
+	return f.addRevision(newData), nil
 }
 
 // get content of file
