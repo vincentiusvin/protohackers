@@ -28,8 +28,16 @@ func (v *VersionControl) PutFile(abs_path string, content []byte) (int, error) {
 
 // get content of file
 // revision of 0 means latest revision
-func (v *VersionControl) GetFile(abs_path string, revision int) {
-
+func (v *VersionControl) GetFile(abs_path string, revision int) ([]byte, error) {
+	f, err := v.getFile(abs_path, false)
+	if err != nil {
+		return nil, err
+	}
+	rev, err := f.getRevision(revision)
+	if err != nil {
+		return nil, err
+	}
+	return rev, nil
 }
 
 // list files in a directory
@@ -81,15 +89,4 @@ func splitPaths(str string) ([]string, error) {
 		}
 	}
 	return spl, nil
-}
-
-func cutPaths(dir []string) ([]string, string) {
-	l := len(dir)
-	if l == 0 {
-		panic("cutpaths passed a nil string")
-	}
-	if l == 1 {
-		return nil, dir[0]
-	}
-	return dir[:l-1], dir[l-1]
 }
