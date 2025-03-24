@@ -60,11 +60,13 @@ func (f *cfile) getRevision(rev int) ([]byte, error) {
 	if l == 0 {
 		return nil, errFileNotFound
 	}
-	rev -= 1
-	if rev < 0 || rev >= l {
+	if rev < 0 || rev > l {
 		return nil, errRevNotFound
 	}
-	return f.revisions[rev], nil
+	if rev == 0 {
+		return f.revisions[l-1], nil
+	}
+	return f.revisions[rev-1], nil
 }
 
 func (f *cfile) addRevision(data []byte) int {
