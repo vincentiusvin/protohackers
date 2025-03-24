@@ -1,9 +1,10 @@
-package main
+package handler_test
 
 import (
 	"bufio"
 	"io"
 	"protohackers/10_git/git"
+	"protohackers/10_git/handler"
 	"strings"
 	"testing"
 )
@@ -89,7 +90,7 @@ func rw() (vc *git.VersionControl, in chan string, out chan string) {
 
 	rw := bufio.NewReadWriter(r, w)
 	vc = git.NewVersionControl()
-	go handleIO(rw, "test", vc)
+	go handler.HandleIO(rw, "test", vc)
 
 	return
 }

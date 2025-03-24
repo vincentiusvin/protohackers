@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"bufio"
@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func handleIO(rw *bufio.ReadWriter, id string, vc *git.VersionControl) {
+func HandleIO(rw *bufio.ReadWriter, id string, vc *git.VersionControl) {
 	log := func(format string, args ...any) {
 		prefix := fmt.Sprintf("[%v] ", id)
 		log.Printf(prefix+format, args...)

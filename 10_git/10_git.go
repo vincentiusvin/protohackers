@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"protohackers/10_git/git"
+	"protohackers/10_git/handler"
 )
 
 func main() {
@@ -37,5 +38,5 @@ func handleConn(c net.Conn, vc *git.VersionControl) {
 
 	rw := bufio.NewReadWriter(r, w)
 	addr := c.RemoteAddr().String()
-	handleIO(rw, addr, vc)
+	handler.HandleIO(rw, addr, vc)
 }
