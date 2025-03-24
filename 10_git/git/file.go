@@ -8,6 +8,7 @@ var (
 	errFileNotFound = fmt.Errorf("file not found")
 )
 
+// readonly to the outside world
 type file interface {
 	getName() string
 	getChildren() (f []file)
