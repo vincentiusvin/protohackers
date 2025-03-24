@@ -170,48 +170,78 @@ func TestList(t *testing.T) {
 
 func TestPut(t *testing.T) {
 	type putCases struct {
-		in string
-		ok bool
+		in     string
+		inB    []byte
+		expOk  bool
+		expRev int
 	}
+
+	ex := vcFixture()
 
 	cases := []putCases{
 		{
-			in: "/dir1/dir2/file",
-			ok: true,
+			in:     ex.f1,
+			inB:    []byte{0x99, 0x12},
+			expOk:  true,
+			expRev: 3,
 		},
 		{
-			in: "/dir1/dir2/file",
-			ok: true,
+			in:     ex.f1,
+			inB:    ex.f1b2,
+			expOk:  true,
+			expRev: 2,
 		},
 		{
-			in: "kucing/meong",
-			ok: false,
+			in:     ex.f1,
+			inB:    ex.f1b1,
+			expOk:  true,
+			expRev: 3,
 		},
 		{
-			in: "/kucing//meong",
-			ok: false,
+			in:     ex.f2,
+			inB:    []byte{0x99, 0x12},
+			expOk:  true,
+			expRev: 2,
 		},
 		{
-			in: "/",
-			ok: false,
+			in:     "/a",
+			inB:    []byte{0x99, 0x12},
+			expOk:  true,
+			expRev: 1,
 		},
 		{
-			in: "/a",
-			ok: true,
+			in:     "/kucing/meong",
+			inB:    []byte{0x99, 0x12},
+			expOk:  true,
+			expRev: 1,
 		},
 		{
-			in: "/kucing/meong",
-			ok: true,
+			in:    "kucing/meong",
+			inB:   []byte{0x99, 0x12},
+			expOk: false,
+		},
+		{
+			in:    "/kucing//meong",
+			inB:   []byte{0x99, 0x12},
+			expOk: false,
+		},
+		{
+			in:    "/",
+			inB:   []byte{0x99, 0x12},
+			expOk: false,
 		},
 	}
 
 	for _, c := range cases {
 		t.Run("put", func(t *testing.T) {
-			v := git.NewVersionControl()
-			_, err := v.PutFile(c.in, []byte{0x01})
-			if c.ok {
+			f := vcFixture()
+			rev, err := f.v.PutFile(c.in, c.inB)
+			if c.expOk {
 				if err != nil {
 					t.Fatal(err)
+				}
+				if rev != c.expRev {
+					t.Fatalf("wrong rev exp %v got %v", c.expRev, rev)
 				}
 			} else {
 				if err == nil {
