@@ -54,3 +54,13 @@ ERR <msg>
   e.g: `/meong/kucing`.
 
 - increment version number if there is a diff with it's current revision, otherwise don't
+
+- apparently the filesystem is not organized like unix. a directory can contain file too.
+  i.e. you can perform these actions:
+
+```
+PUT /dir1/dir2/file
+PUT /dir1/dir2
+```
+
+and store 2 files

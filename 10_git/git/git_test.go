@@ -28,6 +28,14 @@ func TestFileName(t *testing.T) {
 			exp: nil,
 		},
 		{
+			in:  "/",
+			exp: nil,
+		},
+		{
+			in:  "/a",
+			exp: []string{"a"},
+		},
+		{
 			in:  "/kucing/meong",
 			exp: []string{"kucing", "meong"},
 		},

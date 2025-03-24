@@ -6,19 +6,19 @@ import (
 )
 
 type VersionControl struct {
-	entries map[string]node
+	root *directory
 }
 
 func NewVersionControl() *VersionControl {
 	return &VersionControl{
-		entries: make(map[string]node),
+		root: newDirectory(""),
 	}
 }
 
 // put file
 // automatically handle revision
-func (v *VersionControl) PutFile(abs_path string, content []byte) {
-
+func (v *VersionControl) PutFile(abs_path string, content []byte) (*file, error) {
+	return nil, nil
 }
 
 // get content of file
@@ -32,11 +32,20 @@ func (v *VersionControl) ListFile(dir string) {
 
 }
 
+func (v *VersionControl) getFile(abs_path string) (*file, error) {
+	_, err := splitPaths(abs_path)
+	if err != nil {
+		return nil, fmt.Errorf("can't put: %w", err)
+	}
+
+	return nil, nil
+}
+
 var errFileName = fmt.Errorf("illegal file name")
 
 func splitPaths(str string) ([]string, error) {
 	aft, found := strings.CutPrefix(str, "/")
-	if !found {
+	if !found || aft == "" {
 		return nil, errFileName
 	}
 	str = aft
@@ -48,4 +57,15 @@ func splitPaths(str string) ([]string, error) {
 		}
 	}
 	return spl, nil
+}
+
+func cutPaths([]string) (dir []string, filename string) {
+	l := len(dir)
+	if l == 0 {
+		panic("cutpaths passed a nil string")
+	}
+	if l == 1 {
+		return nil, dir[0]
+	}
+	return dir[:l-1], dir[l-1]
 }

@@ -14,13 +14,13 @@ type node interface {
 
 type directory struct {
 	name    string
-	entries []node
+	entries map[string]node
 }
 
 func newDirectory(name string) *directory {
 	return &directory{
 		name:    name,
-		entries: make([]node, 0),
+		entries: make(map[string]node),
 	}
 }
 
@@ -33,7 +33,7 @@ func (d *directory) getType() NodeType {
 }
 
 func (d *directory) addNode(n node) {
-	d.entries = append(d.entries, n)
+	d.entries[n.getName()] = n
 }
 
 type file struct {
