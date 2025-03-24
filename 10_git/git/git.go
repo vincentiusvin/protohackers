@@ -48,8 +48,13 @@ func (v *VersionControl) GetFile(abs_path string, revision int) ([]byte, error) 
 	return rev, nil
 }
 
+type FileListItem struct {
+	Name string
+	Info string
+}
+
 // list files in a directory
-func (v *VersionControl) ListFile(dir string) ([]file, error) {
+func (v *VersionControl) ListFile(dir string) ([]FileListItem, error) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 
@@ -57,7 +62,21 @@ func (v *VersionControl) ListFile(dir string) ([]file, error) {
 	if err != nil {
 		return nil, err
 	}
-	return f.getChildren(), nil
+
+	child := f.getChildren()
+	ret := make([]FileListItem, len(child))
+	for i, f := range child {
+		revnum := f.getRevisionNumber()
+		ret[i].Name = f.getName()
+		if revnum == 0 {
+			ret[i].Info = "DIR"
+			ret[i].Name += "/"
+		} else {
+			ret[i].Info = fmt.Sprintf("r%v", revnum)
+		}
+	}
+
+	return ret, nil
 }
 
 func (v *VersionControl) getFile(abs_path string, force bool) (file, error) {

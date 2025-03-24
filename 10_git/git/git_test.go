@@ -3,6 +3,7 @@ package git_test
 import (
 	"bytes"
 	"protohackers/10_git/git"
+	"reflect"
 	"testing"
 )
 
@@ -10,9 +11,11 @@ type fixtureRet struct {
 	v    *git.VersionControl
 	f1   string
 	f2   string
+	f3   string
 	f1b1 []byte
 	f1b2 []byte
 	f2b1 []byte
+	f3b1 []byte
 }
 
 func vcFixture() fixtureRet {
@@ -20,18 +23,23 @@ func vcFixture() fixtureRet {
 	f1b1 := []byte{0x01, 0x02}
 	f1b2 := []byte{0x01, 0x04}
 	f2b1 := []byte{0x01, 0x03}
-	f1 := "/dir1/dir2/file"
-	f2 := "/dir1/dir2"
+	f3b1 := []byte{0x01, 0x07}
+	f1 := "/dir1/dirfile/file"
+	f2 := "/dir1/dirfile"
+	f3 := "/dir1/dir/file2"
 	v.PutFile(f1, f1b1)
 	v.PutFile(f1, f1b2)
 	v.PutFile(f2, f2b1)
+	v.PutFile(f3, f3b1)
 	return fixtureRet{
 		v:    v,
+		f1:   f1,
+		f2:   f2,
+		f3:   f3,
 		f1b1: f1b1,
 		f1b2: f1b2,
 		f2b1: f2b1,
-		f1:   f1,
-		f2:   f2,
+		f3b1: f3b1,
 	}
 }
 
@@ -95,7 +103,33 @@ func TestGet(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestList(t *testing.T) {
+	f := vcFixture()
+	ret, _ := f.v.ListFile("/dir1")
+
+	dirEntry := git.FileListItem{
+		Name: "dir/",
+		Info: "DIR",
+	}
+
+	fileEntry := git.FileListItem{
+		Name: "dirfile",
+		Info: "r1",
+	}
+
+	var foundDir, foundFile bool
+	for _, retItem := range ret {
+		if reflect.DeepEqual(dirEntry, retItem) {
+			foundDir = true
+		} else if reflect.DeepEqual(fileEntry, retItem) {
+			foundFile = true
+		}
+	}
+	if !foundDir || !foundFile {
+		t.Fatalf("expected a file and dir on %v", ret)
+	}
 }
 
 func TestPut(t *testing.T) {

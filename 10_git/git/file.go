@@ -11,6 +11,7 @@ var (
 // readonly to the outside world
 type file interface {
 	getName() string
+	getRevisionNumber() (revnum int)
 	getChildren() (f []file)
 	getChild(name string) (f file, err error)
 	addChild(name string) (f file, err error)
@@ -37,6 +38,10 @@ func newFile(name string) file {
 
 func (d *cfile) getName() string {
 	return d.name
+}
+
+func (d *cfile) getRevisionNumber() int {
+	return len(d.revisions)
 }
 
 func (d *cfile) getChild(name string) (file, error) {
