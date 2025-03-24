@@ -27,6 +27,9 @@ func (v *VersionControl) PutFile(abs_path string, content []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	if f == v.root {
+		return 0, errFileName
+	}
 	revnum := f.addRevision(content)
 	return revnum, nil
 }
@@ -40,6 +43,9 @@ func (v *VersionControl) GetFile(abs_path string, revision int) ([]byte, error) 
 	f, err := v.getFile(abs_path, false)
 	if err != nil {
 		return nil, err
+	}
+	if f == v.root {
+		return nil, errFileName
 	}
 	rev, err := f.getRevision(revision)
 	if err != nil {
@@ -111,10 +117,13 @@ var errFileName = fmt.Errorf("illegal file name")
 
 func splitPaths(str string) ([]string, error) {
 	aft, found := strings.CutPrefix(str, "/")
-	if !found || aft == "" {
+	if !found {
 		return nil, errFileName
 	}
 	str = aft
+	if str == "" {
+		return nil, nil
+	}
 
 	spl := strings.Split(str, "/")
 	for _, c := range spl {

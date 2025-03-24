@@ -131,7 +131,7 @@ func TestList(t *testing.T) {
 			in: "/",
 			entries: []git.FileListItem{
 				{
-					Name: "dir1",
+					Name: "dir1/",
 					Info: "DIR",
 				},
 			},
