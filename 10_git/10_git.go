@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"net"
 )
@@ -21,10 +22,17 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		go handleConnection(c)
+		go handleConn(c)
 	}
 }
 
-func handleConnection(c net.Conn) {
+func handleConn(c net.Conn) {
 	defer c.Close()
+
+	r := bufio.NewReader(c)
+	w := bufio.NewWriter(c)
+
+	rw := bufio.NewReadWriter(r, w)
+	addr := c.RemoteAddr().String()
+	handleIO(rw, addr)
 }
