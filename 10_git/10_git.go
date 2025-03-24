@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"log"
 	"net"
+	"protohackers/10_git/git"
 )
 
 func main() {
@@ -17,16 +18,18 @@ func main() {
 
 	defer ln.Close()
 
+	vc := git.NewVersionControl()
+
 	for {
 		c, err := ln.Accept()
 		if err != nil {
 			panic(err)
 		}
-		go handleConn(c)
+		go handleConn(c, vc)
 	}
 }
 
-func handleConn(c net.Conn) {
+func handleConn(c net.Conn, vc *git.VersionControl) {
 	defer c.Close()
 
 	r := bufio.NewReader(c)
@@ -34,5 +37,5 @@ func handleConn(c net.Conn) {
 
 	rw := bufio.NewReadWriter(r, w)
 	addr := c.RemoteAddr().String()
-	handleIO(rw, addr)
+	handleIO(rw, addr, vc)
 }

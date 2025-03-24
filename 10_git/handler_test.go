@@ -2,23 +2,27 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"io"
+	"protohackers/10_git/git"
 	"strings"
 	"testing"
 )
 
 func TestHandler(t *testing.T) {
-	rw, in, out := rw()
-	go handleIO(rw, "test")
+	_, in, out := rw()
 
 	in <- "GET"
 	rep := <-out
 	if rep[:3] != "ERR" {
 		t.Fatalf("expected error %v", rep)
 	}
+
+	in <- "GET /dir1 r1"
+	fmt.Println(<-out)
 }
 
-func rw() (rw *bufio.ReadWriter, in chan string, out chan string) {
+func rw() (vc *git.VersionControl, in chan string, out chan string) {
 	in = make(chan string, 1)
 	out = make(chan string, 1)
 
@@ -50,7 +54,9 @@ func rw() (rw *bufio.ReadWriter, in chan string, out chan string) {
 		}
 	}()
 
-	rw = bufio.NewReadWriter(r, w)
+	rw := bufio.NewReadWriter(r, w)
+	vc = git.NewVersionControl()
+	go handleIO(rw, "test", vc)
 
 	return
 }

@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"protohackers/10_git/git"
 	"strconv"
 	"strings"
 )
 
-func handleIO(rw *bufio.ReadWriter, id string) {
+func handleIO(rw *bufio.ReadWriter, id string, vc *git.VersionControl) {
 	log := func(format string, args ...any) {
-		prefix := fmt.Sprintf("[%v]", id)
+		prefix := fmt.Sprintf("[%v] ", id)
 		log.Printf(prefix+format, args...)
 	}
 
@@ -43,10 +44,24 @@ func handleIO(rw *bufio.ReadWriter, id string) {
 		if cmd == "HELP" {
 			reply("OK usage: HELP|GET|PUT|LIST")
 		} else if cmd == "GET" {
-			_, _, err := parseGet(spls[1:])
+			file, revision, err := parseGet(spls[1:])
+
 			if err != nil {
 				reply("ERR %v", err)
 				continue
+			}
+
+			log("GET %v %v", file, revision)
+
+			ret, err := vc.GetFile(file, revision)
+			if err != nil {
+				reply("ERR %v", err)
+				continue
+			}
+			reply("OK %v", len(ret))
+			_, err = rw.Write(ret)
+			if err != nil {
+				log("err: %v", err)
 			}
 		} else {
 			reply("ERR illegal method")

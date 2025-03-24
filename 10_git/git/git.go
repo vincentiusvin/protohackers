@@ -82,7 +82,7 @@ func (v *VersionControl) ListFile(dir string) ([]FileListItem, error) {
 func (v *VersionControl) getFile(abs_path string, force bool) (file, error) {
 	spls, err := splitPaths(abs_path)
 	if err != nil {
-		return nil, fmt.Errorf("can't put: %w", err)
+		return nil, fmt.Errorf("can't access: %w", err)
 	}
 	curr := v.root
 	for len(spls) != 0 {
