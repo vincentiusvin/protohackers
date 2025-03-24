@@ -6,12 +6,12 @@ import (
 )
 
 type VersionControl struct {
-	root *directory
+	root *file
 }
 
 func NewVersionControl() *VersionControl {
 	return &VersionControl{
-		root: newDirectory(""),
+		root: newNode(""),
 	}
 }
 

@@ -1,17 +1,9 @@
 package git
 
 import (
-	"log"
 	"slices"
 	"testing"
 )
-
-func TestDirectory(t *testing.T) {
-	dir := newDirectory("dir1")
-	n := newFile("file1", []byte{0x01, 0x02})
-	dir.addNode(n)
-	log.Println(n)
-}
 
 func TestFileName(t *testing.T) {
 	type fileNameCases struct {
