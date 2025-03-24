@@ -92,6 +92,26 @@ func handleIO(rw *bufio.ReadWriter, id string, vc *git.VersionControl) {
 			}
 
 			reply("OK r%v", rev)
+		} else if cmd == "LIST" {
+			dir, err := parseList(spls[1:])
+
+			if err != nil {
+				reply("ERR %v", err)
+				continue
+			}
+
+			log("LIST %v", dir)
+
+			items, err := vc.ListFile(dir)
+			if err != nil {
+				reply("ERR %v", err)
+				continue
+			}
+
+			reply("OK %v", len(items))
+			for _, fli := range items {
+				reply("%v %v", fli.Name, fli.Info)
+			}
 		} else {
 			reply("ERR illegal method")
 		}
@@ -127,5 +147,15 @@ func parsePut(spls []string) (file string, dataLen int, err error) {
 	dataLenRaw := spls[1]
 	dataLen, err = strconv.Atoi(dataLenRaw)
 
+	return
+}
+
+func parseList(spls []string) (dir string, err error) {
+	l := len(spls)
+	if l != 1 {
+		err = fmt.Errorf("usage: LIST dir")
+		return
+	}
+	dir = spls[0]
 	return
 }

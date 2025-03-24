@@ -19,18 +19,28 @@ func TestHandler(t *testing.T) {
 
 	in <- "PUT /dir1/file1 7\nkucing" // 7 since our writer appends a \n
 	rep = <-out
-	if rep[:2] != "OK" {
+	if rep != "OK r1" {
 		t.Fatalf("expected success %v", rep)
 	}
 
 	in <- "GET /dir1/file1 r1"
 	rep = <-out
-	if rep[:2] != "OK" {
+	if rep != "OK 7" {
 		t.Fatalf("expected success %v", rep)
 	}
 	data := <-out
 	if data != "kucing" {
 		t.Fatalf("expected kucing got %v", data)
+	}
+
+	in <- "LIST /dir1"
+	rep = <-out
+	if rep != "OK 1" {
+		t.Fatalf("expected success %v", rep)
+	}
+	files := <-out
+	if files != "file1 r1" {
+		t.Fatalf("expected file1 r1 got %v", files)
 	}
 }
 
