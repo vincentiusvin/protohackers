@@ -107,28 +107,44 @@ func TestGet(t *testing.T) {
 
 func TestList(t *testing.T) {
 	f := vcFixture()
-	ret, _ := f.v.ListFile("/dir1")
 
-	dirEntry := git.FileListItem{
-		Name: "dir/",
-		Info: "DIR",
+	type listCases struct {
+		in      string
+		entries []git.FileListItem
 	}
 
-	fileEntry := git.FileListItem{
-		Name: "dirfile",
-		Info: "r1",
+	cases := []listCases{
+		{
+			in: "/dir1",
+			entries: []git.FileListItem{
+				{
+					Name: "dirfile",
+					Info: "r1",
+				},
+				{
+					Name: "dir/",
+					Info: "DIR",
+				},
+			},
+		},
+		{
+			in: "/",
+			entries: []git.FileListItem{
+				{
+					Name: "dir1",
+					Info: "DIR",
+				},
+			},
+		},
 	}
 
-	var foundDir, foundFile bool
-	for _, retItem := range ret {
-		if reflect.DeepEqual(dirEntry, retItem) {
-			foundDir = true
-		} else if reflect.DeepEqual(fileEntry, retItem) {
-			foundFile = true
-		}
-	}
-	if !foundDir || !foundFile {
-		t.Fatalf("expected a file and dir on %v", ret)
+	for _, c := range cases {
+		t.Run("case", func(t *testing.T) {
+			ret, _ := f.v.ListFile("/dir1")
+			if !reflect.DeepEqual(ret, c.entries) {
+				t.Fatalf("wrong entires exp %v got %v", c.entries, ret)
+			}
+		})
 	}
 }
 
