@@ -32,13 +32,32 @@ func (v *VersionControl) ListFile(dir string) {
 
 }
 
-func (v *VersionControl) getFile(abs_path string) (file, error) {
-	_, err := splitPaths(abs_path)
+func (v *VersionControl) getFile(abs_path string, force bool) (file, error) {
+	spls, err := splitPaths(abs_path)
 	if err != nil {
 		return nil, fmt.Errorf("can't put: %w", err)
 	}
+	curr := v.root
+	for len(spls) != 0 {
+		head := spls[0]
+		spls = spls[1:]
 
-	return nil, nil
+		f, err := curr.getChild(head)
+		if err != nil {
+			if err != errFileNotFound || !force {
+				return nil, fmt.Errorf("can't get file: %w", err)
+			}
+			// force && errFileNotFound
+			f, err = curr.addChild(head)
+			if err != nil {
+				return nil, fmt.Errorf("can't create file: %w", err)
+			}
+		}
+
+		curr = f
+	}
+
+	return curr, nil
 }
 
 var errFileName = fmt.Errorf("illegal file name")
@@ -59,7 +78,7 @@ func splitPaths(str string) ([]string, error) {
 	return spl, nil
 }
 
-func cutPaths([]string) (dir []string, filename string) {
+func cutPaths(dir []string) ([]string, string) {
 	l := len(dir)
 	if l == 0 {
 		panic("cutpaths passed a nil string")

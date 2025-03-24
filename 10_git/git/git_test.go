@@ -1,7 +1,6 @@
 package git
 
 import (
-	"fmt"
 	"slices"
 	"testing"
 )
@@ -43,10 +42,21 @@ func TestFileName(t *testing.T) {
 }
 
 func TestFile(t *testing.T) {
-	f := newFile("testing")
-	f.addChild("joe")
-	f.addChild("jill")
-	f2 := f.getChild("joe")
-	f2.addChild("james")
-	fmt.Println(f)
+	v := NewVersionControl()
+
+	f, err := v.getFile("/dir1/dir2/file", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.getName() != "file" {
+		t.Fatalf("wrong file %v", f)
+	}
+}
+
+func TestFile2(t *testing.T) {
+	v := NewVersionControl()
+	_, err := v.getFile("/dir1/dir2/file", false)
+	if err == nil {
+		t.Fatal("expected error")
+	}
 }

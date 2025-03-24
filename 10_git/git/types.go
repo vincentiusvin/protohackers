@@ -11,7 +11,7 @@ var (
 type file interface {
 	getName() string
 	getChildren() (f []file)
-	getChild(name string) (f file)
+	getChild(name string) (f file, err error)
 	addChild(name string) (f file, err error)
 	getRevision(rev int) (data []byte, err error)
 	addRevision(data []byte) (revnum int)
@@ -38,12 +38,16 @@ func (d *cfile) getName() string {
 	return d.name
 }
 
-func (d *cfile) getChild(name string) file {
-	return d.child[name]
+func (d *cfile) getChild(name string) (file, error) {
+	f, ok := d.child[name]
+	if !ok {
+		return nil, errFileNotFound
+	}
+	return f, nil
 }
 
 func (d *cfile) addChild(name string) (file, error) {
-	prev := d.getChild(name)
+	prev, _ := d.getChild(name)
 	if prev != nil {
 		return nil, errNodeExist
 	}
