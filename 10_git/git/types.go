@@ -60,6 +60,7 @@ func (f *file) getType() NodeType {
 	return nodeFile
 }
 
-func (f *file) addRevision(content []byte) {
+func (f *file) addRevision(content []byte) int {
 	f.content = append(f.content, content)
+	return len(f.content)
 }
