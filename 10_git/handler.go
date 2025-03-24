@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"protohackers/10_git/git"
 	"strconv"
@@ -58,11 +59,39 @@ func handleIO(rw *bufio.ReadWriter, id string, vc *git.VersionControl) {
 				reply("ERR %v", err)
 				continue
 			}
+
 			reply("OK %v", len(ret))
+
 			_, err = rw.Write(ret)
 			if err != nil {
 				log("err: %v", err)
+				return
 			}
+			rw.Flush()
+
+		} else if cmd == "PUT" {
+			file, fileLen, err := parsePut(spls[1:])
+
+			if err != nil {
+				reply("ERR %v", err)
+				continue
+			}
+
+			log("PUT %v %v", file, fileLen)
+
+			data := make([]byte, fileLen)
+			_, err = io.ReadFull(rw, data)
+			if err != nil {
+				return
+			}
+
+			rev, err := vc.PutFile(file, data)
+			if err != nil {
+				reply("ERR %v", err)
+				continue
+			}
+
+			reply("OK r%v", rev)
 		} else {
 			reply("ERR illegal method")
 		}
@@ -83,6 +112,20 @@ func parseGet(spls []string) (file string, revision int, err error) {
 		aft, _ := strings.CutPrefix(rev_raw, "r") // optional r prefix
 		revision, err = strconv.Atoi(aft)
 	}
+
+	return
+}
+
+func parsePut(spls []string) (file string, dataLen int, err error) {
+	l := len(spls)
+	if l != 2 {
+		err = fmt.Errorf("usage: PUT file length newline data")
+		return
+	}
+
+	file = spls[0]
+	dataLenRaw := spls[1]
+	dataLen, err = strconv.Atoi(dataLenRaw)
 
 	return
 }

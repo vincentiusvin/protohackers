@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"protohackers/10_git/git"
 	"strings"
@@ -18,8 +17,21 @@ func TestHandler(t *testing.T) {
 		t.Fatalf("expected error %v", rep)
 	}
 
-	in <- "GET /dir1 r1"
-	fmt.Println(<-out)
+	in <- "PUT /dir1/file1 7\nkucing" // 7 since our writer appends a \n
+	rep = <-out
+	if rep[:2] != "OK" {
+		t.Fatalf("expected success %v", rep)
+	}
+
+	in <- "GET /dir1/file1 r1"
+	rep = <-out
+	if rep[:2] != "OK" {
+		t.Fatalf("expected success %v", rep)
+	}
+	data := <-out
+	if data != "kucing" {
+		t.Fatalf("expected kucing got %v", data)
+	}
 }
 
 func rw() (vc *git.VersionControl, in chan string, out chan string) {
