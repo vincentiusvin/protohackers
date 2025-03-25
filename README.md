@@ -12,7 +12,7 @@ Done:
 - [x] 7 - Line Reversal
 - [x] 8 - Insecure Sockets Layer
 - [x] 9 - Job Centre
-- [ ] 10 - Voracious Code Storage
+- [x] 10 - Voracious Code Storage
 - [ ] 11 - Pest Control
 
 # Running
@@ -98,3 +98,5 @@ Had some performance issues so I implemented a priority queue too.
 ## 10
 
 A reverse engineering problem. Had some trouble filtering file content.
+
+Used interfaces to hide variables from code in the same package, why didn't i think of this before.
