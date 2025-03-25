@@ -230,6 +230,11 @@ func TestPut(t *testing.T) {
 			inB:   []byte{0x99, 0x12},
 			expOk: false,
 		},
+		{
+			in:    "/(5ab)",
+			inB:   []byte{0x99, 0x12},
+			expOk: false,
+		},
 	}
 
 	for _, c := range cases {

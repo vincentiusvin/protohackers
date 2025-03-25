@@ -155,6 +155,25 @@ func splitPaths(str string) ([]string, error) {
 		if c == "" {
 			return nil, errFileName
 		}
+		if !isAlphanum(c) {
+			return nil, errFileName
+		}
 	}
 	return spl, nil
+}
+
+func isAlphanum(s string) bool {
+	for _, c := range s {
+		uppercase := (c >= 'A') && (c <= 'Z')
+		lowercase := (c >= 'a') && (c <= 'z')
+		digits := (c >= '0') && (c <= '9')
+
+		if uppercase || lowercase || digits {
+			continue
+		}
+
+		return false
+	}
+
+	return true
 }
