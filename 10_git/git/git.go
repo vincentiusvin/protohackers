@@ -167,8 +167,11 @@ func isAlphanum(s string) bool {
 		uppercase := (c >= 'A') && (c <= 'Z')
 		lowercase := (c >= 'a') && (c <= 'z')
 		digits := (c >= '0') && (c <= '9')
+		dot := c == '.'
+		dash := c == '-'
+		underscore := c == '_'
 
-		if uppercase || lowercase || digits {
+		if uppercase || lowercase || digits || dot || dash || underscore {
 			continue
 		}
 
