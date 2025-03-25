@@ -3,9 +3,11 @@ package git
 import "fmt"
 
 var (
-	errNodeExist    = fmt.Errorf("file already exists")
 	errRevNotFound  = fmt.Errorf("revision not found")
 	errFileNotFound = fmt.Errorf("file not found")
+	errNodeExist    = fmt.Errorf("file already exists")
+	errFileName     = fmt.Errorf("illegal file name")
+	errFileContent  = fmt.Errorf("illegal file content")
 )
 
 // readonly to the outside world

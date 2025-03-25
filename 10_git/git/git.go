@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"unicode/utf8"
 )
 
 type VersionControl struct {
@@ -31,6 +32,10 @@ func (v *VersionControl) PutFile(abs_path string, newData []byte) (int, error) {
 	}
 	if f == v.root {
 		return 0, errFileName
+	}
+
+	if !utf8.Valid(newData) {
+		return 0, errFileContent
 	}
 
 	// check if same as prev
@@ -137,8 +142,6 @@ func (v *VersionControl) getFile(abs_path string, force bool) (file, error) {
 
 	return curr, nil
 }
-
-var errFileName = fmt.Errorf("illegal file name")
 
 func splitPaths(str string) ([]string, error) {
 	aft, found := strings.CutPrefix(str, "/")

@@ -22,11 +22,11 @@ type fixtureRet struct {
 
 func vcFixture() fixtureRet {
 	v := git.NewVersionControl()
-	f1b1 := []byte{0x01, 0x02}
-	f1b2 := []byte{0x01, 0x04}
-	f2b1 := []byte{0x01, 0x03}
-	f3b1 := []byte{0x01, 0x07}
-	f4b1 := []byte{0x01, 0x08}
+	f1b1 := []byte("meng1")
+	f1b2 := []byte("meng2")
+	f2b1 := []byte("meng3")
+	f3b1 := []byte("meng4")
+	f4b1 := []byte("meng5")
 	f1 := "/dir1/dirfile/file"
 	f2 := "/dir1/dirfile"
 	f3 := "/dir1/dir/file2"
@@ -181,7 +181,7 @@ func TestPut(t *testing.T) {
 	cases := []putCases{
 		{
 			in:     ex.f1,
-			inB:    []byte{0x99, 0x12},
+			inB:    []byte("meong1"),
 			expOk:  true,
 			expRev: 3,
 		},
@@ -199,40 +199,45 @@ func TestPut(t *testing.T) {
 		},
 		{
 			in:     ex.f2,
-			inB:    []byte{0x99, 0x12},
+			inB:    []byte("aaa"),
 			expOk:  true,
 			expRev: 2,
 		},
 		{
 			in:     "/a",
-			inB:    []byte{0x99, 0x12},
+			inB:    []byte("aaa"),
 			expOk:  true,
 			expRev: 1,
 		},
 		{
 			in:     "/kucing/meong",
-			inB:    []byte{0x99, 0x12},
+			inB:    []byte("aaa"),
 			expOk:  true,
 			expRev: 1,
 		},
 		{
 			in:    "kucing/meong",
-			inB:   []byte{0x99, 0x12},
+			inB:   []byte("aaa"),
 			expOk: false,
 		},
 		{
 			in:    "/kucing//meong",
-			inB:   []byte{0x99, 0x12},
+			inB:   []byte("aaa"),
 			expOk: false,
 		},
 		{
 			in:    "/",
-			inB:   []byte{0x99, 0x12},
+			inB:   []byte("aaa"),
 			expOk: false,
 		},
 		{
 			in:    "/(5ab)",
-			inB:   []byte{0x99, 0x12},
+			inB:   []byte("aaa"),
+			expOk: false,
+		},
+		{
+			in:    "/kucing/meong",
+			inB:   []byte{0xFA},
 			expOk: false,
 		},
 	}
