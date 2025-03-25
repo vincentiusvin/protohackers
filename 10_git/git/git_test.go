@@ -210,18 +210,30 @@ func TestPut(t *testing.T) {
 			expRev: 1,
 		},
 		{
+			in:     "/multiline",
+			inB:    []byte("abc\ndef\n"),
+			expOk:  true,
+			expRev: 1,
+		},
+		{
 			in:     "/kucing/meong",
 			inB:    []byte("aaa"),
 			expOk:  true,
 			expRev: 1,
 		},
 		{
-			in:    "kucing/meong",
+			in:     "/testsym",
+			inB:    []byte("£"),
+			expOk:  true,
+			expRev: 1,
+		},
+		{
+			in:    "no/leadingDash",
 			inB:   []byte("aaa"),
 			expOk: false,
 		},
 		{
-			in:    "/kucing//meong",
+			in:    "/toomany//dashes",
 			inB:   []byte("aaa"),
 			expOk: false,
 		},
@@ -231,13 +243,23 @@ func TestPut(t *testing.T) {
 			expOk: false,
 		},
 		{
-			in:    "/(5ab)",
+			in:    "/(parentheses)",
 			inB:   []byte("aaa"),
 			expOk: false,
 		},
 		{
-			in:    "/kucing/meong",
+			in:    "/weird/bytes",
 			inB:   []byte{0xFA},
+			expOk: false,
+		},
+		{
+			in:    "/emojis",
+			inB:   []byte("👍"),
+			expOk: false,
+		},
+		{
+			in:    "/punct",
+			inB:   []byte("—"),
 			expOk: false,
 		},
 	}
@@ -248,14 +270,14 @@ func TestPut(t *testing.T) {
 			rev, err := f.v.PutFile(c.in, c.inB)
 			if c.expOk {
 				if err != nil {
-					t.Fatal(err)
+					t.Fatalf("%v err: %v", c.in, err)
 				}
 				if rev != c.expRev {
-					t.Fatalf("wrong rev exp %v got %v", c.expRev, rev)
+					t.Fatalf("%v wrong rev exp %v got %v", c.in, c.expRev, rev)
 				}
 			} else {
 				if err == nil {
-					t.Fatalf("expected error")
+					t.Fatalf("%v expected error", c.in)
 				}
 			}
 		})

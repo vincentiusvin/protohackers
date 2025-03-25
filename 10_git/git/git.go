@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -34,7 +35,7 @@ func (v *VersionControl) PutFile(abs_path string, newData []byte) (int, error) {
 		return 0, errFileName
 	}
 
-	if !utf8.Valid(newData) {
+	if !isText(newData) {
 		return 0, errFileContent
 	}
 
@@ -167,17 +168,37 @@ func splitPaths(str string) ([]string, error) {
 
 func isAlphanum(s string) bool {
 	for _, c := range s {
-		uppercase := (c >= 'A') && (c <= 'Z')
-		lowercase := (c >= 'a') && (c <= 'z')
-		digits := (c >= '0') && (c <= '9')
+		letter := unicode.IsLetter(c)
+		digits := unicode.IsNumber(c)
 		dot := c == '.'
 		dash := c == '-'
 		underscore := c == '_'
 
-		if uppercase || lowercase || digits || dot || dash || underscore {
+		if letter || digits || dot || dash || underscore {
 			continue
 		}
 
+		return false
+	}
+
+	return true
+}
+
+// text as defined by the reference implementation
+func isText(b []byte) bool {
+	if !utf8.Valid(b) {
+		return false
+	}
+	s := string(b)
+	for _, c := range s {
+		ascii := 32 <= c && c <= 127
+		letter := unicode.IsLetter(c)
+		curr := unicode.Is(unicode.Sc, c)
+		space := unicode.IsSpace(c)
+
+		if ascii || letter || curr || space {
+			continue
+		}
 		return false
 	}
 

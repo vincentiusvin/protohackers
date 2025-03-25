@@ -94,3 +94,7 @@ Would've been easier if I didn't fumble with that stupid bug in Read()
 Tried implementing the domain logic fully using channels. Pretty fun! Lots of boilerplate though.
 
 Had some performance issues so I implemented a priority queue too.
+
+## 10
+
+A reverse engineering problem. Had some trouble filtering file content.

@@ -92,6 +92,7 @@ func HandleIO(rw *bufio.ReadWriter, id string, vc *git.VersionControl) {
 			rev, err := vc.PutFile(file, data)
 			if err != nil {
 				reply("ERR %v", err)
+				log("err putting file %v", err)
 				continue
 			}
 
