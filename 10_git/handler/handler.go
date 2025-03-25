@@ -30,9 +30,10 @@ func HandleIO(rw *bufio.ReadWriter, id string, vc *git.VersionControl) {
 		reply("READY")
 		line, err := rw.ReadString('\n')
 		if err != nil {
-			log("%v", err)
 			return
 		}
+
+		log("got input: %v", line)
 
 		line = strings.TrimSpace(line)
 
@@ -42,8 +43,10 @@ func HandleIO(rw *bufio.ReadWriter, id string, vc *git.VersionControl) {
 		}
 
 		cmd := spls[0]
+		cmd = strings.ToUpper(cmd)
 
 		if cmd == "HELP" {
+			log("HELP")
 			reply("OK usage: HELP|GET|PUT|LIST")
 		} else if cmd == "GET" {
 			file, revision, err := parseGet(spls[1:])
