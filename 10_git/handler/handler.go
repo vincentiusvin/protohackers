@@ -136,6 +136,11 @@ func parseGet(spls []string) (file string, revision int, err error) {
 		rev_raw := spls[1]
 		aft, _ := strings.CutPrefix(rev_raw, "r") // optional r prefix
 		revision, err = strconv.Atoi(aft)
+		// we allow revision 0 in internal code but not from user
+		// they should just omit the revision field
+		if revision == 0 {
+			err = fmt.Errorf("invalid revision number")
+		}
 	}
 
 	return
