@@ -142,7 +142,6 @@ func TestDeletePolicy(t *testing.T) {
 	}
 
 	<-done
-
 }
 
 func fixture(site uint32) (s pest.Site, in chan any, out chan any, err error) {
