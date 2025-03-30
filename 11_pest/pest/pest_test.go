@@ -1,7 +1,6 @@
 package pest_test
 
 import (
-	"fmt"
 	"protohackers/11_pest/pest"
 	"protohackers/11_pest/types"
 	"reflect"
@@ -133,7 +132,6 @@ func TestConcurrency(t *testing.T) {
 		Species: "kucing",
 		Action:  types.PolicyConserve,
 	}
-	fmt.Println("test")
 
 	if !reflect.DeepEqual(expPol, outPol) {
 		t.Fatalf("wrong policy. exp %v got %v", expPol, outPol)
