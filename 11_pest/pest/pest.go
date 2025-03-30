@@ -1,6 +1,8 @@
 package pest
 
 import (
+	"fmt"
+	"log"
 	"protohackers/11_pest/types"
 	"sync"
 )
@@ -11,10 +13,26 @@ type Controller interface {
 
 type SiteFactory = func(site uint32) (Site, error)
 
+type visitSync struct {
+	species string
+	site    uint32
+	count   uint32
+	synced  bool
+}
+
+func (v visitSync) hash() string {
+	return fmt.Sprintf("%v-%v", v.site, v.species)
+}
+
 type CController struct {
+	mu          sync.Mutex
 	sites       map[uint32]Site
 	siteFactory SiteFactory
-	mu          sync.Mutex
+
+	// synchronize with authority server
+	syncCh chan struct{}
+	// based on hash() of visitSync
+	visitData map[string]visitSync
 }
 
 func NewControllerTCP() Controller {
@@ -22,46 +40,85 @@ func NewControllerTCP() Controller {
 }
 
 func NewController(siteFactory SiteFactory) Controller {
-	return &CController{
+	c := &CController{
 		sites:       make(map[uint32]Site),
 		siteFactory: siteFactory,
+		visitData:   make(map[string]visitSync),
+		syncCh:      make(chan struct{}, 1), // buffered to represent needing to sync
 	}
+	go c.runSynchronize()
+	return c
 }
 
 func (c *CController) AddSiteVisit(sv types.SiteVisit) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	s, err := c.getSite(sv.Site)
-	if err != nil {
-		return err
-	}
-	count, err := s.GetPops()
-	if err != nil {
-		return err
-	}
-
-	// change to map if too slow
 	for _, svEntry := range sv.Populations {
-		for _, countEntry := range count.Populations {
-			if svEntry.Species != countEntry.Species {
+		vs := visitSync{
+			species: svEntry.Species,
+			site:    sv.Site,
+			count:   svEntry.Count,
+		}
+		c.visitData[vs.hash()] = vs
+	}
+	log.Println("updating site visit data")
+
+	select {
+	case c.syncCh <- struct{}{}:
+	default:
+	}
+	return nil
+}
+
+func (c *CController) runSynchronize() {
+	for range c.syncCh {
+		c.synchronize()
+	}
+}
+
+func (c *CController) synchronize() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	log.Println("synchronizing data")
+	for _, visited := range c.visitData {
+		s, err := c.getSite(visited.site)
+		if err != nil {
+			return
+		}
+		pops, err := s.GetPops()
+		if err != nil {
+			return
+		}
+
+		var pop types.TargetPopulationsEntry
+		var popFound bool
+		for _, targetPop := range pops.Populations {
+			if targetPop.Species != visited.species {
 				continue
 			}
-			if svEntry.Count < countEntry.Min {
-				s.UpdatePolicy(types.CreatePolicy{
-					Species: svEntry.Species,
-					Action:  types.PolicyConserve,
-				})
-			} else if svEntry.Count > countEntry.Max {
-				s.UpdatePolicy(types.CreatePolicy{
-					Species: svEntry.Species,
-					Action:  types.PolicyCull,
-				})
-			}
+			popFound = true
+			pop = targetPop
 		}
-	}
 
-	return nil
+		if !popFound {
+			continue
+		}
+
+		pol := types.CreatePolicy{
+			Species: visited.species,
+		}
+
+		if visited.count < pop.Min {
+			pol.Action = types.PolicyConserve
+		} else if visited.count > pop.Max {
+			pol.Action = types.PolicyCull
+		}
+
+		s.UpdatePolicy(pol)
+	}
+	log.Println("data synced")
 }
 
 func (c *CController) getSite(site uint32) (Site, error) {

@@ -1,6 +1,7 @@
 package pest_test
 
 import (
+	"fmt"
 	"protohackers/11_pest/pest"
 	"protohackers/11_pest/types"
 	"reflect"
@@ -27,7 +28,7 @@ func TestSiteVisit(t *testing.T) {
 	for _, cs := range cases {
 		t.Run("visit", func(t *testing.T) {
 			var sitenum uint32 = 12345
-			s := newMockSite(sitenum)
+			s := newMockSite(sitenum, 0)
 
 			factory := func(site uint32) (pest.Site, error) {
 				return s, nil
@@ -63,9 +64,8 @@ func TestSiteVisit(t *testing.T) {
 }
 
 func TestConcurrency(t *testing.T) {
-
 	var sitenum uint32 = 12345
-	s := newMockSite(sitenum)
+	s := newMockSite(sitenum, 0)
 
 	factory := func(site uint32) (pest.Site, error) {
 		return s, nil
@@ -87,7 +87,25 @@ func TestConcurrency(t *testing.T) {
 			Populations: []types.SiteVisitEntry{
 				{
 					Species: "kucing",
-					Count:   200,
+					Count:   199,
+				},
+			},
+		},
+		{
+			Site: sitenum,
+			Populations: []types.SiteVisitEntry{
+				{
+					Species: "kucing",
+					Count:   198,
+				},
+			},
+		},
+		{
+			Site: sitenum,
+			Populations: []types.SiteVisitEntry{
+				{
+					Species: "kucing",
+					Count:   197,
 				},
 			},
 		},
@@ -102,6 +120,7 @@ func TestConcurrency(t *testing.T) {
 		},
 	}
 
+	// all should run without blocking
 	for _, sv := range svs {
 		err := c.AddSiteVisit(sv)
 		if err != nil {
@@ -114,6 +133,7 @@ func TestConcurrency(t *testing.T) {
 		Species: "kucing",
 		Action:  types.PolicyConserve,
 	}
+	fmt.Println("test")
 
 	if !reflect.DeepEqual(expPol, outPol) {
 		t.Fatalf("wrong policy. exp %v got %v", expPol, outPol)
@@ -125,10 +145,10 @@ type mockSite struct {
 	policies chan types.CreatePolicy
 }
 
-func newMockSite(site uint32) *mockSite {
+func newMockSite(site uint32, chanlen int) *mockSite {
 	return &mockSite{
 		site:     site,
-		policies: make(chan types.CreatePolicy, 1),
+		policies: make(chan types.CreatePolicy, chanlen),
 	}
 }
 
