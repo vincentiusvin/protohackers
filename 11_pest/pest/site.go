@@ -170,8 +170,16 @@ func (s *CSite) createPolicy(pol types.CreatePolicy) (ret types.PolicyResult, er
 		return
 	}
 
-	log.Printf("%v policy for %v created\n", s.site, s.targetPop)
 	ret = <-s.policyResultChan
+
+	var action string
+	if pol.Action == types.PolicyConserve {
+		action = "conserve"
+	} else if pol.Action == types.PolicyCull {
+		action = "cull"
+	}
+
+	log.Printf("%v policy for %v: %v\n", s.site, pol.Species, action)
 	return
 }
 
@@ -183,7 +191,7 @@ func (s *CSite) deletePolicy(pol types.DeletePolicy) (ret types.OK, err error) {
 	}
 
 	ret = <-s.okChan
-	log.Printf("%v policy for %v deleted\n", s.site, s.targetPop)
+	log.Printf("%v policy %v deleted\n", s.site, pol.Policy)
 	return
 }
 

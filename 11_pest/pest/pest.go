@@ -42,7 +42,7 @@ func (c *CController) AddSiteVisit(sv types.SiteVisit) error {
 			} else if svEntry.Count > countEntry.Max {
 				s.UpdatePolicy(types.CreatePolicy{
 					Species: svEntry.Species,
-					Action:  types.PolicyConserve,
+					Action:  types.PolicyCull,
 				})
 			}
 		}
