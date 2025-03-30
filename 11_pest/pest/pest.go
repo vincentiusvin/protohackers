@@ -9,14 +9,22 @@ type Controller interface {
 	AddSiteVisit(sv types.SiteVisit) error
 }
 
+type SiteFactory = func(site uint32) (Site, error)
+
 type CController struct {
-	sites map[uint32]Site
-	mu    sync.Mutex
+	sites       map[uint32]Site
+	siteFactory SiteFactory
+	mu          sync.Mutex
 }
 
-func NewController() Controller {
+func NewControllerTCP() Controller {
+	return NewController(NewSiteTCP)
+}
+
+func NewController(siteFactory SiteFactory) Controller {
 	return &CController{
-		sites: make(map[uint32]Site),
+		sites:       make(map[uint32]Site),
+		siteFactory: siteFactory,
 	}
 }
 
@@ -58,7 +66,7 @@ func (c *CController) getSite(site uint32) (Site, error) {
 	defer c.mu.Unlock()
 
 	if c.sites[site] == nil {
-		ns, err := NewSiteTCP(site)
+		ns, err := c.siteFactory(site)
 		if err != nil {
 			return nil, err
 		}
