@@ -1,4 +1,4 @@
-package pest
+package types
 
 type Hello struct {
 	Protocol string

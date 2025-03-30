@@ -2,7 +2,7 @@ package infra_test
 
 import (
 	"protohackers/11_pest/infra"
-	"protohackers/11_pest/pest"
+	"protohackers/11_pest/types"
 	"reflect"
 	"testing"
 )
@@ -25,7 +25,7 @@ var helloCases = []parseCase{
 			0x00, 0x00, 0x00, 0x01,
 			0xce,
 		},
-		expVal: pest.Hello{
+		expVal: types.Hello{
 			Protocol: "pestcontrol",
 			Version:  1,
 		},
@@ -42,7 +42,7 @@ var errorCases = []parseCase{
 			0x62, 0x61, 0x64,
 			0x78,
 		},
-		expVal: pest.Error{
+		expVal: types.Error{
 			Message: "bad",
 		},
 		expOk: true,
@@ -56,7 +56,7 @@ var okCases = []parseCase{
 			0x00, 0x00, 0x00, 0x06,
 			0xa8,
 		},
-		expVal: pest.OK{},
+		expVal: types.OK{},
 		expOk:  true,
 	},
 }
@@ -69,7 +69,7 @@ var dialAuthorityCases = []parseCase{
 			0x00, 0x00, 0x30, 0x39,
 			0x3a,
 		},
-		expVal: pest.DialAuthority{
+		expVal: types.DialAuthority{
 			Site: 12345,
 		},
 		expOk: true,
@@ -93,9 +93,9 @@ var targetPopCases = []parseCase{
 			0x00, 0x00, 0x00, 0x0a,
 			0x80,
 		},
-		expVal: pest.TargetPopulations{
+		expVal: types.TargetPopulations{
 			Site: 12345,
-			Populations: []pest.TargetPopulationsEntry{
+			Populations: []types.TargetPopulationsEntry{
 				{
 					Species: "dog",
 					Min:     1,
@@ -122,9 +122,9 @@ var createPolicyCases = []parseCase{
 			0xa0,
 			0xc0,
 		},
-		expVal: pest.CreatePolicy{
+		expVal: types.CreatePolicy{
 			Species: "dog",
-			Action:  pest.PolicyConserve,
+			Action:  types.PolicyConserve,
 		},
 		expOk: true,
 	},
@@ -138,7 +138,7 @@ var deletePolicyCases = []parseCase{
 			0x00, 0x00, 0x00, 0x7b,
 			0x25,
 		},
-		expVal: pest.DeletePolicy{
+		expVal: types.DeletePolicy{
 			Policy: 123,
 		},
 		expOk: true,
@@ -153,7 +153,7 @@ var policyResultCases = []parseCase{
 			0x00, 0x00, 0x00, 0x7b,
 			0x24,
 		},
-		expVal: pest.PolicyResult{
+		expVal: types.PolicyResult{
 			Policy: 123,
 		},
 		expOk: true,
@@ -175,9 +175,9 @@ var siteVisitCases = []parseCase{
 			0x00, 0x00, 0x00, 0x05,
 			0x8c,
 		},
-		expVal: pest.SiteVisit{
+		expVal: types.SiteVisit{
 			Site: 12345,
-			Populations: []pest.SiteVisitEntry{
+			Populations: []types.SiteVisitEntry{
 				{
 					Species: "dog",
 					Count:   1,

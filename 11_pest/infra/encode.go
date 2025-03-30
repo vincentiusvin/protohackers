@@ -2,34 +2,34 @@ package infra
 
 import (
 	"encoding/binary"
-	"protohackers/11_pest/pest"
+	"protohackers/11_pest/types"
 )
 
 func Encode(v any) []byte {
 	switch nv := v.(type) {
-	case pest.Hello:
+	case types.Hello:
 		return encodeHello(nv)
-	case pest.Error:
+	case types.Error:
 		return encodeError(nv)
-	case pest.OK:
+	case types.OK:
 		return encodeOK(nv)
-	case pest.DialAuthority:
+	case types.DialAuthority:
 		return encodeDialAuthority(nv)
-	case pest.TargetPopulations:
+	case types.TargetPopulations:
 		return encodeTargetPopulations(nv)
-	case pest.CreatePolicy:
+	case types.CreatePolicy:
 		return encodeCreatePolicy(nv)
-	case pest.DeletePolicy:
+	case types.DeletePolicy:
 		return encodeDeletePolicy(nv)
-	case pest.PolicyResult:
+	case types.PolicyResult:
 		return encodePolicyResult(nv)
-	case pest.SiteVisit:
+	case types.SiteVisit:
 		return encodeSiteVisit(nv)
 	}
 	return nil
 }
 
-func encodeHello(v pest.Hello) []byte {
+func encodeHello(v types.Hello) []byte {
 	body := make([]byte, 0)
 	body = append(body, encodeString(v.Protocol)...)
 	body = append(body, encodeUint32(v.Version)...)
@@ -37,23 +37,23 @@ func encodeHello(v pest.Hello) []byte {
 	return encaseEnvelope(body, 0x50)
 }
 
-func encodeError(v pest.Error) []byte {
+func encodeError(v types.Error) []byte {
 	body := make([]byte, 0)
 	body = append(body, encodeString(v.Message)...)
 	return encaseEnvelope(body, 0x51)
 }
 
-func encodeOK(pest.OK) []byte {
+func encodeOK(types.OK) []byte {
 	return encaseEnvelope(nil, 0x52)
 }
 
-func encodeDialAuthority(v pest.DialAuthority) []byte {
+func encodeDialAuthority(v types.DialAuthority) []byte {
 	body := make([]byte, 0)
 	body = append(body, encodeUint32(v.Site)...)
 	return encaseEnvelope(body, 0x53)
 }
 
-func encodeTargetPopulations(v pest.TargetPopulations) []byte {
+func encodeTargetPopulations(v types.TargetPopulations) []byte {
 	body := make([]byte, 0)
 	body = append(body, encodeUint32(v.Site)...)
 	arrLen := uint32(len(v.Populations))
@@ -66,26 +66,26 @@ func encodeTargetPopulations(v pest.TargetPopulations) []byte {
 	return encaseEnvelope(body, 0x54)
 }
 
-func encodeCreatePolicy(v pest.CreatePolicy) []byte {
+func encodeCreatePolicy(v types.CreatePolicy) []byte {
 	body := make([]byte, 0)
 	body = append(body, encodeString(v.Species)...)
 	body = append(body, byte(v.Action))
 	return encaseEnvelope(body, 0x55)
 }
 
-func encodeDeletePolicy(v pest.DeletePolicy) []byte {
+func encodeDeletePolicy(v types.DeletePolicy) []byte {
 	body := make([]byte, 0)
 	body = append(body, encodeUint32(v.Policy)...)
 	return encaseEnvelope(body, 0x56)
 }
 
-func encodePolicyResult(v pest.PolicyResult) []byte {
+func encodePolicyResult(v types.PolicyResult) []byte {
 	body := make([]byte, 0)
 	body = append(body, encodeUint32(v.Policy)...)
 	return encaseEnvelope(body, 0x57)
 }
 
-func encodeSiteVisit(v pest.SiteVisit) []byte {
+func encodeSiteVisit(v types.SiteVisit) []byte {
 	body := make([]byte, 0)
 	body = append(body, encodeUint32(v.Site)...)
 	arrLen := uint32(len(v.Populations))

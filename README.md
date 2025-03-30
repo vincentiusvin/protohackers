@@ -100,3 +100,8 @@ Had some performance issues so I implemented a priority queue too.
 A reverse engineering problem. Had some trouble filtering file content.
 
 Used interfaces to hide variables from code in the same package, why didn't i think of this before.
+
+## 11
+
+Had to do a bunch of parsing like in challenge 6, but functional parsing seems to be really nice here.
+Made a bunch of parser combinators too :)
