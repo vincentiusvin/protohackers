@@ -261,7 +261,7 @@ func TestParser(t *testing.T) {
 
 func TestEncoder(t *testing.T) {
 	runEncodeCase := func(t *testing.T, c parseCase) {
-		res := infra.Encode(c.inB)
+		res := infra.Encode(c.expVal)
 		if !reflect.DeepEqual(res, c.inB) {
 			t.Fatalf("wrong parse result. exp %v got %v", c.inB, res)
 		}

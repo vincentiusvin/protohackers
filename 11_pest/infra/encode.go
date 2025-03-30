@@ -14,7 +14,11 @@ func Encode(v any) []byte {
 }
 
 func encodeHello(h pest.Hello) []byte {
-	return nil
+	body := make([]byte, 0)
+	body = append(body, encodeString(h.Protocol)...)
+	body = append(body, encodeUint32(h.Version)...)
+
+	return encaseEnvelope(body, 0x50)
 }
 
 func encaseEnvelope(b []byte, prefix byte) (ret []byte) {
@@ -39,5 +43,12 @@ func encaseEnvelope(b []byte, prefix byte) (ret []byte) {
 
 func encodeUint32(val uint32) (ret []byte) {
 	ret = binary.BigEndian.AppendUint32(ret, val)
+	return ret
+}
+
+func encodeString(s string) (ret []byte) {
+	strlen := uint32(len(s))
+	ret = append(ret, encodeUint32(strlen)...)
+	ret = append(ret, []byte(s)...)
 	return ret
 }
