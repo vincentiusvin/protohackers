@@ -6,6 +6,7 @@ import (
 	"net"
 	"protohackers/11_pest/infra"
 	"protohackers/11_pest/types"
+	"sync"
 )
 
 type Site interface {
@@ -16,6 +17,8 @@ type Site interface {
 }
 
 type CSite struct {
+	mu sync.Mutex
+
 	site uint32
 	c    net.Conn
 
@@ -54,6 +57,9 @@ func (s *CSite) GetSite() uint32 {
 // Connect is the initialization code.
 // It is long and thus can be awaited
 func (s *CSite) Connect() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	conn, err := net.Dial("tcp", "pestcontrol.protohackers.com:20547")
 	if err != nil {
 		return err
@@ -124,6 +130,9 @@ func (s *CSite) handshake() error {
 }
 
 func (s *CSite) GetPops() (ret types.TargetPopulations, err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if s.targetPopOK {
 		return s.targetPop, nil
 	}
@@ -147,6 +156,9 @@ func (s *CSite) GetPops() (ret types.TargetPopulations, err error) {
 // update policy.
 // also ensures that there is only 1 policy in place
 func (s *CSite) UpdatePolicy(pol types.CreatePolicy) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	prev, ok := s.policies[pol.Species]
 	if ok {
 		_, err := s.deletePolicy(types.DeletePolicy(prev))

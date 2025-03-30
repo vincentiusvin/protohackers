@@ -2,6 +2,7 @@ package pest
 
 import (
 	"protohackers/11_pest/types"
+	"sync"
 )
 
 type Controller interface {
@@ -10,6 +11,7 @@ type Controller interface {
 
 type CController struct {
 	sites map[uint32]Site
+	mu    sync.Mutex
 }
 
 func NewController() Controller {
@@ -52,6 +54,9 @@ func (c *CController) AddSiteVisit(sv types.SiteVisit) error {
 }
 
 func (c *CController) getSite(site uint32) (Site, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if c.sites[site] == nil {
 		ns := NewSite(site)
 		err := ns.Connect()
