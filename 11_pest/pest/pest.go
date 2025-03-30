@@ -58,8 +58,7 @@ func (c *CController) getSite(site uint32) (Site, error) {
 	defer c.mu.Unlock()
 
 	if c.sites[site] == nil {
-		ns := NewSite(site)
-		err := ns.Connect()
+		ns, err := NewSiteTCP(site)
 		if err != nil {
 			return nil, err
 		}

@@ -2,6 +2,7 @@ package pest
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"protohackers/11_pest/infra"
@@ -11,7 +12,6 @@ import (
 
 type Site interface {
 	GetSite() uint32
-	Connect() error
 	GetPops() (types.TargetPopulations, error)
 	UpdatePolicy(types.CreatePolicy) error
 }
@@ -20,7 +20,7 @@ type CSite struct {
 	mu sync.Mutex
 
 	site uint32
-	c    net.Conn
+	c    io.ReadWriteCloser
 
 	// cached value
 	targetPop   types.TargetPopulations
@@ -37,8 +37,17 @@ type CSite struct {
 	policies map[string]types.PolicyResult
 }
 
-func NewSite(site uint32) Site {
+func NewSiteTCP(site uint32) (Site, error) {
+	conn, err := net.Dial("tcp", "pestcontrol.protohackers.com:20547")
+	if err != nil {
+		return nil, err
+	}
+	return NewSite(site, conn), nil
+}
+
+func NewSite(site uint32, c io.ReadWriteCloser) Site {
 	s := &CSite{
+		c:                c,
 		site:             site,
 		helloChan:        make(chan types.Hello),
 		okChan:           make(chan types.OK),
@@ -47,29 +56,15 @@ func NewSite(site uint32) Site {
 		policies:         make(map[string]types.PolicyResult),
 	}
 
+	go s.processIncoming()
+	s.handshake()
+	log.Printf("%v setup finished\n", s.site)
+
 	return s
 }
 
 func (s *CSite) GetSite() uint32 {
 	return s.site
-}
-
-// Connect is the initialization code.
-// It is long and thus can be awaited
-func (s *CSite) Connect() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	conn, err := net.Dial("tcp", "pestcontrol.protohackers.com:20547")
-	if err != nil {
-		return err
-	}
-
-	s.c = conn
-	go s.processIncoming()
-	s.handshake()
-	log.Printf("%v setup finished\n", s.site)
-	return nil
 }
 
 func (s *CSite) processIncoming() {
