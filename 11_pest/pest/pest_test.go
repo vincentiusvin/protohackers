@@ -54,15 +54,19 @@ func TestGetPops(t *testing.T) {
 
 func TestUpdatePolicy(t *testing.T) {
 	var siteNum uint32 = 12345
-	s, _, out, err := fixture(siteNum)
+	s, in, out, err := fixture(siteNum)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	go s.UpdatePolicy(types.CreatePolicy{
-		Species: "kucing",
-		Action:  types.PolicyCull,
-	})
+	done := make(chan struct{})
+	go func() {
+		s.UpdatePolicy(types.CreatePolicy{
+			Species: "kucing",
+			Action:  types.PolicyCull,
+		})
+		close(done)
+	}()
 
 	popsOut := <-out
 	expPops := types.CreatePolicy{
@@ -72,6 +76,73 @@ func TestUpdatePolicy(t *testing.T) {
 	if !reflect.DeepEqual(expPops, popsOut) {
 		t.Fatalf("wrong out exp %v got %v", expPops, popsOut)
 	}
+
+	in <- types.PolicyResult{
+		Policy: 600,
+	}
+
+	<-done
+}
+
+func TestDeletePolicy(t *testing.T) {
+	var siteNum uint32 = 12345
+	s, in, out, err := fixture(siteNum)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		s.UpdatePolicy(types.CreatePolicy{
+			Species: "kucing",
+			Action:  types.PolicyCull,
+		})
+		s.UpdatePolicy(types.CreatePolicy{
+			Species: "kucing",
+			Action:  types.PolicyConserve,
+		})
+		close(done)
+	}()
+
+	popsOut := <-out
+	expPops := types.CreatePolicy{
+		Species: "kucing",
+		Action:  types.PolicyCull,
+	}
+	if !reflect.DeepEqual(expPops, popsOut) {
+		t.Fatalf("wrong out exp %v got %v", expPops, popsOut)
+	}
+
+	var oldPolicyNum uint32 = 600
+	in <- types.PolicyResult{
+		Policy: oldPolicyNum,
+	}
+
+	delOut := <-out
+	expDel := types.DeletePolicy{
+		Policy: oldPolicyNum,
+	}
+	if !reflect.DeepEqual(expDel, delOut) {
+		t.Fatalf("wrong out exp %v got %v", expDel, delOut)
+	}
+
+	in <- types.OK{}
+
+	popsOut2 := <-out
+	expPops2 := types.CreatePolicy{
+		Species: "kucing",
+		Action:  types.PolicyConserve,
+	}
+	if !reflect.DeepEqual(expPops2, popsOut2) {
+		t.Fatalf("wrong out exp %v got %v", expPops2, popsOut2)
+	}
+
+	in <- types.PolicyResult{
+		Policy: 700,
+	}
+
+	<-done
+
 }
 
 func fixture(site uint32) (s pest.Site, in chan any, out chan any, err error) {
