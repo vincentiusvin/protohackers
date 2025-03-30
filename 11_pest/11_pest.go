@@ -1,11 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"log"
 	"net"
-	"protohackers/10_git/git"
-	"protohackers/10_git/handler"
+	"protohackers/11_pest/infra"
+	"protohackers/11_pest/pest"
+	"protohackers/11_pest/types"
 )
 
 func main() {
@@ -19,24 +19,72 @@ func main() {
 
 	defer ln.Close()
 
-	vc := git.NewVersionControl()
+	pc := pest.NewController()
 
 	for {
 		c, err := ln.Accept()
 		if err != nil {
 			panic(err)
 		}
-		go handleConn(c, vc)
+		go handleConn(c, pc)
 	}
 }
 
-func handleConn(c net.Conn, vc *git.VersionControl) {
+func handleConn(c net.Conn, pc pest.Controller) {
 	defer c.Close()
 
-	r := bufio.NewReader(c)
-	w := bufio.NewWriter(c)
-
-	rw := bufio.NewReadWriter(r, w)
 	addr := c.RemoteAddr().String()
-	handler.HandleIO(rw, addr, vc)
+	log.Printf("[%v] connected\n", addr)
+
+	helloChan, visitChan := processIncoming(c)
+
+	helloReply := <-helloChan
+	if helloReply.Protocol != "pestcontrol" || helloReply.Version != 1 {
+		return
+	}
+
+	for v := range visitChan {
+		log.Printf("[%v] added visit\n", v)
+		pc.AddSiteVisit(v)
+	}
+}
+
+func processIncoming(c net.Conn) (helloChan chan types.Hello, visitChan chan types.SiteVisit) {
+	helloChan = make(chan types.Hello)
+	visitChan = make(chan types.SiteVisit)
+
+	go func() {
+		defer func() {
+			close(helloChan)
+			close(visitChan)
+		}()
+
+		var curr []byte
+		for {
+			b := make([]byte, 1024)
+			_, err := c.Read(b)
+			curr = append(curr, b...)
+			if err != nil {
+				break
+			}
+
+			for {
+				res := infra.Parse(curr)
+				if !res.Ok {
+					break
+				}
+
+				switch v := res.Value.(type) {
+				case types.Hello:
+					helloChan <- v
+				case types.SiteVisit:
+					visitChan <- v
+				}
+
+				curr = res.Next
+			}
+		}
+	}()
+
+	return helloChan, visitChan
 }

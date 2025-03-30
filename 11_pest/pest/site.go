@@ -2,6 +2,7 @@ package pest
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"protohackers/11_pest/infra"
 	"protohackers/11_pest/types"
@@ -10,7 +11,6 @@ import (
 type Site interface {
 	GetSite() uint32
 	Connect() error
-	Close()
 	GetPops() (types.TargetPopulations, error)
 	UpdatePolicy(types.CreatePolicy) error
 }
@@ -62,11 +62,12 @@ func (s *CSite) Connect() error {
 	s.c = conn
 	go s.processIncoming()
 	s.handshake()
+	log.Printf("%v connected\n", s.site)
 	return nil
 }
 
 func (s *CSite) processIncoming() {
-	defer s.Close()
+	defer s.close()
 
 	var curr []byte
 	for {
@@ -134,6 +135,7 @@ func (s *CSite) GetPops() (ret types.TargetPopulations, err error) {
 
 	s.targetPop = <-s.targetPopChan
 	s.targetPopOK = true
+	log.Printf("%v pop reading updated %v\n", s.site, s.targetPop)
 
 	return s.targetPop, nil
 }
@@ -164,6 +166,7 @@ func (s *CSite) createPolicy(pol types.CreatePolicy) (ret types.PolicyResult, er
 		return
 	}
 
+	log.Printf("%v policy for %v created\n", s.site, s.targetPop)
 	ret = <-s.policyResultChan
 	return
 }
@@ -176,10 +179,11 @@ func (s *CSite) deletePolicy(pol types.DeletePolicy) (ret types.OK, err error) {
 	}
 
 	ret = <-s.okChan
+	log.Printf("%v policy for %v deleted\n", s.site, s.targetPop)
 	return
 }
 
-func (s *CSite) Close() {
+func (s *CSite) close() {
 	s.c.Close()
 	close(s.helloChan)
 	close(s.okChan)
