@@ -42,7 +42,7 @@ func handleConn(c net.Conn, pc pest.Controller) {
 	if helloReply.Protocol != "pestcontrol" || helloReply.Version != 1 {
 		return
 	}
-	log.Println("[%v] got hello\n", addr)
+	log.Printf("[%v] got hello\n", addr)
 
 	helloB := infra.Encode(types.Hello{
 		Protocol: "pestcontrol",
