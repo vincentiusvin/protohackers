@@ -2,6 +2,7 @@ package infra_test
 
 import (
 	"protohackers/11_pest/infra"
+	"protohackers/11_pest/pest"
 	"reflect"
 	"testing"
 )
@@ -36,7 +37,7 @@ func TestParser(t *testing.T) {
 					0x00, 0x00, 0x00, 0x01,
 					0xce,
 				},
-				expVal: infra.Hello{
+				expVal: pest.Hello{
 					Protocol: "pestcontrol",
 					Version:  1,
 				},
@@ -58,7 +59,7 @@ func TestParser(t *testing.T) {
 					0x62, 0x61, 0x64,
 					0x78,
 				},
-				expVal: infra.Error{
+				expVal: pest.Error{
 					Message: "bad",
 				},
 				expOk: true,
@@ -77,7 +78,7 @@ func TestParser(t *testing.T) {
 					0x00, 0x00, 0x00, 0x06,
 					0xa8,
 				},
-				expVal: infra.OK{},
+				expVal: pest.OK{},
 				expOk:  true,
 			},
 		}
@@ -95,7 +96,7 @@ func TestParser(t *testing.T) {
 					0x00, 0x00, 0x30, 0x39,
 					0x3a,
 				},
-				expVal: infra.DialAuthority{
+				expVal: pest.DialAuthority{
 					Site: 12345,
 				},
 				expOk: true,
@@ -124,9 +125,9 @@ func TestParser(t *testing.T) {
 					0x00, 0x00, 0x00, 0x0a,
 					0x80,
 				},
-				expVal: infra.TargetPopulations{
+				expVal: pest.TargetPopulations{
 					Site: 12345,
-					Populations: []infra.TargetPopulationsEntry{
+					Populations: []pest.TargetPopulationsEntry{
 						{
 							Species: "dog",
 							Min:     1,
@@ -158,9 +159,9 @@ func TestParser(t *testing.T) {
 					0xa0,
 					0xc0,
 				},
-				expVal: infra.CreatePolicy{
+				expVal: pest.CreatePolicy{
 					Species: "dog",
-					Action:  infra.PolicyConserve,
+					Action:  pest.PolicyConserve,
 				},
 				expOk: true,
 			},
@@ -179,7 +180,7 @@ func TestParser(t *testing.T) {
 					0x00, 0x00, 0x00, 0x7b,
 					0x25,
 				},
-				expVal: infra.DeletePolicy{
+				expVal: pest.DeletePolicy{
 					Policy: 123,
 				},
 				expOk: true,
@@ -199,7 +200,7 @@ func TestParser(t *testing.T) {
 					0x00, 0x00, 0x00, 0x7b,
 					0x24,
 				},
-				expVal: infra.PolicyResult{
+				expVal: pest.PolicyResult{
 					Policy: 123,
 				},
 				expOk: true,
@@ -226,9 +227,9 @@ func TestParser(t *testing.T) {
 					0x00, 0x00, 0x00, 0x05,
 					0x8c,
 				},
-				expVal: infra.SiteVisit{
+				expVal: pest.SiteVisit{
 					Site: 12345,
-					Populations: []infra.SiteVisitEntry{
+					Populations: []pest.SiteVisitEntry{
 						{
 							Species: "dog",
 							Count:   1,

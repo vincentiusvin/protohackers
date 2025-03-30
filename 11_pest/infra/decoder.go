@@ -2,6 +2,7 @@ package infra
 
 import (
 	"encoding/binary"
+	"protohackers/11_pest/pest"
 )
 
 type ParseFunc[T any] func(b []byte) ParseResult[T]
@@ -69,8 +70,8 @@ func Parse(b []byte) (ret ParseResult[any]) {
 	return ret
 }
 
-func parseHello(b []byte) ParseResult[Hello] {
-	return envelope(func(b []byte) (ret ParseResult[Hello]) {
+func parseHello(b []byte) ParseResult[pest.Hello] {
+	return envelope(func(b []byte) (ret ParseResult[pest.Hello]) {
 		protocol := parseString(b)
 		if !protocol.Ok {
 			return ret
@@ -81,7 +82,7 @@ func parseHello(b []byte) ParseResult[Hello] {
 		}
 
 		ret.Ok = true
-		ret.Value = Hello{
+		ret.Value = pest.Hello{
 			Protocol: protocol.Value,
 			Version:  version.Value,
 		}
@@ -90,14 +91,14 @@ func parseHello(b []byte) ParseResult[Hello] {
 	}, 0x50)(b)
 }
 
-func parseError(b []byte) ParseResult[Error] {
-	return envelope(func(b []byte) (ret ParseResult[Error]) {
+func parseError(b []byte) ParseResult[pest.Error] {
+	return envelope(func(b []byte) (ret ParseResult[pest.Error]) {
 		message := parseString(b)
 		if !message.Ok {
 			return ret
 		}
 		ret.Ok = true
-		ret.Value = Error{
+		ret.Value = pest.Error{
 			Message: message.Value,
 		}
 		ret.Next = message.Next
@@ -105,22 +106,22 @@ func parseError(b []byte) ParseResult[Error] {
 	}, 0x51)(b)
 }
 
-func parseOk(b []byte) ParseResult[OK] {
-	return envelope(func(b []byte) (ret ParseResult[OK]) {
+func parseOk(b []byte) ParseResult[pest.OK] {
+	return envelope(func(b []byte) (ret ParseResult[pest.OK]) {
 		ret.Ok = true
 		ret.Next = b
 		return ret
 	}, 0x52)(b)
 }
 
-func parseDialAuthority(b []byte) ParseResult[DialAuthority] {
-	return envelope(func(b []byte) (ret ParseResult[DialAuthority]) {
+func parseDialAuthority(b []byte) ParseResult[pest.DialAuthority] {
+	return envelope(func(b []byte) (ret ParseResult[pest.DialAuthority]) {
 		site := parseUint32(b)
 		if !site.Ok {
 			return ret
 		}
 		ret.Ok = true
-		ret.Value = DialAuthority{
+		ret.Value = pest.DialAuthority{
 			Site: site.Value,
 		}
 		ret.Next = site.Next
@@ -128,7 +129,7 @@ func parseDialAuthority(b []byte) ParseResult[DialAuthority] {
 	}, 0x53)(b)
 }
 
-func parseTargetPopulationsEntry(b []byte) (ret ParseResult[TargetPopulationsEntry]) {
+func parseTargetPopulationsEntry(b []byte) (ret ParseResult[pest.TargetPopulationsEntry]) {
 	species := parseString(b)
 	if !species.Ok {
 		return ret
@@ -145,7 +146,7 @@ func parseTargetPopulationsEntry(b []byte) (ret ParseResult[TargetPopulationsEnt
 	}
 
 	ret.Ok = true
-	ret.Value = TargetPopulationsEntry{
+	ret.Value = pest.TargetPopulationsEntry{
 		Species: species.Value,
 		Min:     min.Value,
 		Max:     max.Value,
@@ -154,8 +155,8 @@ func parseTargetPopulationsEntry(b []byte) (ret ParseResult[TargetPopulationsEnt
 	return ret
 }
 
-func parseTargetPopulations(b []byte) ParseResult[TargetPopulations] {
-	return envelope(func(b []byte) (ret ParseResult[TargetPopulations]) {
+func parseTargetPopulations(b []byte) ParseResult[pest.TargetPopulations] {
+	return envelope(func(b []byte) (ret ParseResult[pest.TargetPopulations]) {
 		site := parseUint32(b)
 		if !site.Ok {
 			return ret
@@ -166,7 +167,7 @@ func parseTargetPopulations(b []byte) ParseResult[TargetPopulations] {
 		}
 
 		ret.Ok = true
-		ret.Value = TargetPopulations{
+		ret.Value = pest.TargetPopulations{
 			Site:        site.Value,
 			Populations: pops.Value,
 		}
@@ -175,8 +176,8 @@ func parseTargetPopulations(b []byte) ParseResult[TargetPopulations] {
 	}, 0x54)(b)
 }
 
-func parseCreatePolicy(b []byte) ParseResult[CreatePolicy] {
-	return envelope(func(b []byte) (ret ParseResult[CreatePolicy]) {
+func parseCreatePolicy(b []byte) ParseResult[pest.CreatePolicy] {
+	return envelope(func(b []byte) (ret ParseResult[pest.CreatePolicy]) {
 		species := parseString(b)
 		if !species.Ok {
 			return ret
@@ -186,13 +187,13 @@ func parseCreatePolicy(b []byte) ParseResult[CreatePolicy] {
 			return ret
 		}
 
-		actionValue := Policy(action.Value)
-		if actionValue != PolicyCull && actionValue != PolicyConserve {
+		actionValue := pest.Policy(action.Value)
+		if actionValue != pest.PolicyCull && actionValue != pest.PolicyConserve {
 			return ret
 		}
 
 		ret.Ok = true
-		ret.Value = CreatePolicy{
+		ret.Value = pest.CreatePolicy{
 			Species: species.Value,
 			Action:  actionValue,
 		}
@@ -201,15 +202,15 @@ func parseCreatePolicy(b []byte) ParseResult[CreatePolicy] {
 	}, 0x55)(b)
 }
 
-func parseDeletePolicy(b []byte) ParseResult[DeletePolicy] {
-	return envelope(func(b []byte) (ret ParseResult[DeletePolicy]) {
+func parseDeletePolicy(b []byte) ParseResult[pest.DeletePolicy] {
+	return envelope(func(b []byte) (ret ParseResult[pest.DeletePolicy]) {
 		policy := parseUint32(b)
 		if !policy.Ok {
 			return ret
 		}
 
 		ret.Ok = true
-		ret.Value = DeletePolicy{
+		ret.Value = pest.DeletePolicy{
 			Policy: policy.Value,
 		}
 		ret.Next = policy.Next
@@ -217,15 +218,15 @@ func parseDeletePolicy(b []byte) ParseResult[DeletePolicy] {
 	}, 0x56)(b)
 }
 
-func parsePolicyResult(b []byte) ParseResult[PolicyResult] {
-	return envelope(func(b []byte) (ret ParseResult[PolicyResult]) {
+func parsePolicyResult(b []byte) ParseResult[pest.PolicyResult] {
+	return envelope(func(b []byte) (ret ParseResult[pest.PolicyResult]) {
 		policy := parseUint32(b)
 		if !policy.Ok {
 			return ret
 		}
 
 		ret.Ok = true
-		ret.Value = PolicyResult{
+		ret.Value = pest.PolicyResult{
 			Policy: policy.Value,
 		}
 		ret.Next = policy.Next
@@ -233,7 +234,7 @@ func parsePolicyResult(b []byte) ParseResult[PolicyResult] {
 	}, 0x57)(b)
 }
 
-func parseSiteVisitEntry(b []byte) (ret ParseResult[SiteVisitEntry]) {
+func parseSiteVisitEntry(b []byte) (ret ParseResult[pest.SiteVisitEntry]) {
 	species := parseString(b)
 	if !species.Ok {
 		return ret
@@ -245,7 +246,7 @@ func parseSiteVisitEntry(b []byte) (ret ParseResult[SiteVisitEntry]) {
 	}
 
 	ret.Ok = true
-	ret.Value = SiteVisitEntry{
+	ret.Value = pest.SiteVisitEntry{
 		Species: species.Value,
 		Count:   count.Value,
 	}
@@ -253,8 +254,8 @@ func parseSiteVisitEntry(b []byte) (ret ParseResult[SiteVisitEntry]) {
 	return ret
 }
 
-func parseSiteVisit(b []byte) ParseResult[SiteVisit] {
-	return envelope(func(b []byte) (ret ParseResult[SiteVisit]) {
+func parseSiteVisit(b []byte) ParseResult[pest.SiteVisit] {
+	return envelope(func(b []byte) (ret ParseResult[pest.SiteVisit]) {
 		site := parseUint32(b)
 		if !site.Ok {
 			return ret
@@ -265,7 +266,7 @@ func parseSiteVisit(b []byte) ParseResult[SiteVisit] {
 		}
 
 		ret.Ok = true
-		ret.Value = SiteVisit{
+		ret.Value = pest.SiteVisit{
 			Site:        site.Value,
 			Populations: pops.Value,
 		}
