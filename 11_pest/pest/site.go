@@ -7,6 +7,7 @@ import (
 	"net"
 	"protohackers/11_pest/infra"
 	"protohackers/11_pest/types"
+	"sync"
 )
 
 type Site interface {
@@ -32,7 +33,8 @@ type CSite struct {
 
 	// need to ensure only one policy is active
 	// key is species name
-	policies map[string]types.PolicyResult
+	// map[string]types.PolicyResult
+	policies sync.Map
 }
 
 func NewSiteTCP(site uint32) (Site, error) {
@@ -51,7 +53,6 @@ func NewSite(site uint32, c io.ReadWriteCloser) Site {
 		okChan:           make(chan types.OK),
 		targetPopChan:    make(chan types.TargetPopulations),
 		policyResultChan: make(chan types.PolicyResult),
-		policies:         make(map[string]types.PolicyResult),
 	}
 
 	go s.processIncoming()
@@ -146,9 +147,9 @@ func (s *CSite) GetPops() (ret types.TargetPopulations, err error) {
 // update policy.
 // also ensures that there is only 1 policy in place
 func (s *CSite) UpdatePolicy(pol types.CreatePolicy) error {
-	prev, ok := s.policies[pol.Species]
+	prev, ok := s.policies.Load(pol.Species)
 	if ok {
-		_, err := s.deletePolicy(types.DeletePolicy(prev))
+		_, err := s.deletePolicy(types.DeletePolicy(prev.(types.PolicyResult)))
 		if err != nil {
 			return err
 		}
@@ -158,7 +159,7 @@ func (s *CSite) UpdatePolicy(pol types.CreatePolicy) error {
 	if err != nil {
 		return err
 	}
-	s.policies[pol.Species] = ret
+	s.policies.Store(pol.Species, ret)
 	return nil
 }
 
@@ -178,7 +179,7 @@ func (s *CSite) createPolicy(pol types.CreatePolicy) (ret types.PolicyResult, er
 		action = "cull"
 	}
 
-	log.Printf("%v policy for %v: %v\n", s.site, pol.Species, action)
+	log.Printf("%v policy for %v: %v (%v)\n", s.site, pol.Species, action, ret.Policy)
 	return
 }
 

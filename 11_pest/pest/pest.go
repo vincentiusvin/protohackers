@@ -32,7 +32,7 @@ type CController struct {
 	// synchronize with authority server
 	syncCh chan struct{}
 	// based on hash() of visitSync
-	visitData map[string]visitSync
+	visitData map[string]*visitSync
 }
 
 func NewControllerTCP() Controller {
@@ -43,7 +43,7 @@ func NewController(siteFactory SiteFactory) Controller {
 	c := &CController{
 		sites:       make(map[uint32]Site),
 		siteFactory: siteFactory,
-		visitData:   make(map[string]visitSync),
+		visitData:   make(map[string]*visitSync),
 		syncCh:      make(chan struct{}, 1), // buffered to represent needing to sync
 	}
 	go c.runSynchronize()
@@ -60,7 +60,7 @@ func (c *CController) AddSiteVisit(sv types.SiteVisit) error {
 			site:    sv.Site,
 			count:   svEntry.Count,
 		}
-		c.visitData[vs.hash()] = vs
+		c.visitData[vs.hash()] = &vs
 	}
 	log.Println("updating site visit data")
 
@@ -81,15 +81,14 @@ func (c *CController) synchronize() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	log.Println("synchronizing data")
-	for _, visited := range c.visitData {
+	syncIndividualData := func(visited visitSync) bool {
 		s, err := c.getSite(visited.site)
 		if err != nil {
-			return
+			return false
 		}
 		pops, err := s.GetPops()
 		if err != nil {
-			return
+			return false
 		}
 
 		var pop types.TargetPopulationsEntry
@@ -103,7 +102,7 @@ func (c *CController) synchronize() {
 		}
 
 		if !popFound {
-			continue
+			return false
 		}
 
 		pol := types.CreatePolicy{
@@ -112,12 +111,34 @@ func (c *CController) synchronize() {
 
 		if visited.count < pop.Min {
 			pol.Action = types.PolicyConserve
+			s.UpdatePolicy(pol)
 		} else if visited.count > pop.Max {
 			pol.Action = types.PolicyCull
+			s.UpdatePolicy(pol)
 		}
 
-		s.UpdatePolicy(pol)
+		return true
 	}
+
+	log.Println("synchronizing data")
+	var wg sync.WaitGroup
+	for _, visited := range c.visitData {
+		if visited.synced {
+			continue
+		}
+		wg.Add(1)
+		copied := *visited
+		go func() {
+			defer wg.Done()
+			res := syncIndividualData(copied)
+			if res {
+				visited.synced = true
+			}
+		}()
+	}
+
+	wg.Wait()
+
 	log.Println("data synced")
 }
 
