@@ -44,3 +44,32 @@ func parseString(b []byte) (ret ParseResult[string]) {
 
 	return ret
 }
+
+// parser combinator :)
+func parseArray[T any](fn ParseFunc[T]) ParseFunc[[]T] {
+	return func(b []byte) (ret ParseResult[[]T]) {
+		lenParse := parseUint32(b)
+		if !lenParse.Ok {
+			return
+		}
+
+		b = lenParse.Next
+		lenVal := int(lenParse.Value)
+
+		acc := make([]T, lenVal)
+		for i := 0; i < lenVal; i++ {
+			curr := fn(b)
+			if !curr.Ok {
+				return
+			}
+			acc[i] = curr.Value
+			b = curr.Next
+		}
+
+		ret.Ok = true
+		ret.Value = acc
+		ret.Next = b
+
+		return
+	}
+}
