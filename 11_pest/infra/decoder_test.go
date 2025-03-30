@@ -49,6 +49,50 @@ func TestHello(t *testing.T) {
 		Version:  1,
 	}
 
+	if !p.Ok {
+		t.Fatalf("failed to parse")
+	}
+
+	if !reflect.DeepEqual(p.Value, exp) {
+		t.Fatalf("wrong parse result. exp %v got %v", exp, p.Value)
+	}
+}
+
+func TestError(t *testing.T) {
+	p := parseError([]byte{
+		0x51,
+		0x00, 0x00, 0x00, 0x0d,
+		0x00, 0x00, 0x00, 0x03,
+		0x62, 0x61, 0x64,
+		0x78,
+	})
+
+	exp := Error{
+		Message: "bad",
+	}
+
+	if !p.Ok {
+		t.Fatalf("failed to parse")
+	}
+
+	if !reflect.DeepEqual(p.Value, exp) {
+		t.Fatalf("wrong parse result. exp %v got %v", exp, p.Value)
+	}
+}
+
+func TestOK(t *testing.T) {
+	p := parseOk([]byte{
+		0x52,
+		0x00, 0x00, 0x00, 0x06,
+		0xa8,
+	})
+
+	exp := OK{}
+
+	if !p.Ok {
+		t.Fatalf("failed to parse")
+	}
+
 	if !reflect.DeepEqual(p.Value, exp) {
 		t.Fatalf("wrong parse result. exp %v got %v", exp, p.Value)
 	}
