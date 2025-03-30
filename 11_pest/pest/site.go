@@ -7,7 +7,6 @@ import (
 	"net"
 	"protohackers/11_pest/infra"
 	"protohackers/11_pest/types"
-	"sync"
 )
 
 type Site interface {
@@ -16,9 +15,8 @@ type Site interface {
 	UpdatePolicy(types.CreatePolicy) error
 }
 
+// this struct is not thread safe
 type CSite struct {
-	mu sync.Mutex
-
 	site uint32
 	c    io.ReadWriteCloser
 
@@ -125,9 +123,6 @@ func (s *CSite) handshake() error {
 }
 
 func (s *CSite) GetPops() (ret types.TargetPopulations, err error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if s.targetPopOK {
 		return s.targetPop, nil
 	}
@@ -151,9 +146,6 @@ func (s *CSite) GetPops() (ret types.TargetPopulations, err error) {
 // update policy.
 // also ensures that there is only 1 policy in place
 func (s *CSite) UpdatePolicy(pol types.CreatePolicy) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	prev, ok := s.policies[pol.Species]
 	if ok {
 		_, err := s.deletePolicy(types.DeletePolicy(prev))

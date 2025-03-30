@@ -60,7 +60,64 @@ func TestSiteVisit(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestConcurrency(t *testing.T) {
+
+	var sitenum uint32 = 12345
+	s := newMockSite(sitenum)
+
+	factory := func(site uint32) (pest.Site, error) {
+		return s, nil
+	}
+	c := pest.NewController(factory)
+
+	svs := []types.SiteVisit{
+		{
+			Site: sitenum,
+			Populations: []types.SiteVisitEntry{
+				{
+					Species: "kucing",
+					Count:   200,
+				},
+			},
+		},
+		{
+			Site: sitenum,
+			Populations: []types.SiteVisitEntry{
+				{
+					Species: "kucing",
+					Count:   200,
+				},
+			},
+		},
+		{
+			Site: sitenum,
+			Populations: []types.SiteVisitEntry{
+				{
+					Species: "kucing",
+					Count:   1,
+				},
+			},
+		},
+	}
+
+	for _, sv := range svs {
+		err := c.AddSiteVisit(sv)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	outPol := <-s.policies
+	expPol := types.CreatePolicy{
+		Species: "kucing",
+		Action:  types.PolicyConserve,
+	}
+
+	if !reflect.DeepEqual(expPol, outPol) {
+		t.Fatalf("wrong policy. exp %v got %v", expPol, outPol)
+	}
 }
 
 type mockSite struct {

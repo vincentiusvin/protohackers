@@ -29,6 +29,9 @@ func NewController(siteFactory SiteFactory) Controller {
 }
 
 func (c *CController) AddSiteVisit(sv types.SiteVisit) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	s, err := c.getSite(sv.Site)
 	if err != nil {
 		return err
@@ -62,9 +65,6 @@ func (c *CController) AddSiteVisit(sv types.SiteVisit) error {
 }
 
 func (c *CController) getSite(site uint32) (Site, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	if c.sites[site] == nil {
 		ns, err := c.siteFactory(site)
 		if err != nil {
