@@ -56,8 +56,12 @@ func handleConn(c net.Conn, pc pest.Controller) {
 	log.Printf("[%v] sent hello\n", addr)
 
 	for v := range visitChan {
-		log.Printf("[%v] added visit\n", v)
-		pc.AddSiteVisit(v)
+		log.Printf("[%v] added visit: %v\n", addr, v)
+		err = pc.AddSiteVisit(v)
+		if err != nil {
+			log.Printf("%v got err %v", addr, err)
+			break
+		}
 	}
 }
 

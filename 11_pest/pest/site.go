@@ -72,8 +72,8 @@ func (s *CSite) processIncoming() {
 	var curr []byte
 	for {
 		b := make([]byte, 1024)
-		_, err := s.c.Read(b)
-		curr = append(curr, b...)
+		n, err := s.c.Read(b)
+		curr = append(curr, b[:n]...)
 		if err != nil {
 			break
 		}
