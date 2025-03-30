@@ -143,6 +143,135 @@ func parseTargetPopulations(b []byte) ParseResult[TargetPopulations] {
 	}, 0x54)(b)
 }
 
+type Policy uint8
+
+var (
+	PolicyCull     Policy = 0x90
+	PolicyConserve Policy = 0xa0
+)
+
+type CreatePolicy struct {
+	Species string
+	Action  Policy
+}
+
+func parseCreatePolicy(b []byte) ParseResult[CreatePolicy] {
+	return envelope(func(b []byte) (ret ParseResult[CreatePolicy]) {
+		species := parseString(b)
+		if !species.Ok {
+			return ret
+		}
+		action := parseUint8(species.Next)
+		if !action.Ok {
+			return ret
+		}
+
+		actionValue := Policy(action.Value)
+		if actionValue != PolicyCull && actionValue != PolicyConserve {
+			return ret
+		}
+
+		ret.Ok = true
+		ret.Value = CreatePolicy{
+			Species: species.Value,
+			Action:  actionValue,
+		}
+		ret.Next = action.Next
+		return ret
+	}, 0x55)(b)
+}
+
+type DeletePolicy struct {
+	Policy uint32
+}
+
+func parseDeletePolicy(b []byte) ParseResult[DeletePolicy] {
+	return envelope(func(b []byte) (ret ParseResult[DeletePolicy]) {
+		policy := parseUint32(b)
+		if !policy.Ok {
+			return ret
+		}
+
+		ret.Ok = true
+		ret.Value = DeletePolicy{
+			Policy: policy.Value,
+		}
+		ret.Next = policy.Next
+		return ret
+	}, 0x56)(b)
+}
+
+type PolicyResult struct {
+	Policy uint32
+}
+
+func parsePolicyResult(b []byte) ParseResult[PolicyResult] {
+	return envelope(func(b []byte) (ret ParseResult[PolicyResult]) {
+		policy := parseUint32(b)
+		if !policy.Ok {
+			return ret
+		}
+
+		ret.Ok = true
+		ret.Value = PolicyResult{
+			Policy: policy.Value,
+		}
+		ret.Next = policy.Next
+		return ret
+	}, 0x57)(b)
+}
+
+type SiteVisitEntry struct {
+	Species string
+	Count   uint32
+}
+
+func parseSiteVisitEntry(b []byte) (ret ParseResult[SiteVisitEntry]) {
+	species := parseString(b)
+	if !species.Ok {
+		return ret
+	}
+
+	count := parseUint32(species.Next)
+	if !count.Ok {
+		return ret
+	}
+
+	ret.Ok = true
+	ret.Value = SiteVisitEntry{
+		Species: species.Value,
+		Count:   count.Value,
+	}
+	ret.Next = count.Next
+	return ret
+}
+
+type SiteVisit struct {
+	Site        uint32
+	Populations []SiteVisitEntry
+}
+
+func parseSiteVisit(b []byte) ParseResult[SiteVisit] {
+	return envelope(func(b []byte) (ret ParseResult[SiteVisit]) {
+		site := parseUint32(b)
+		if !site.Ok {
+			return ret
+		}
+		pops := parseArray(parseSiteVisitEntry)(site.Next)
+		if !pops.Ok {
+			return ret
+		}
+
+		ret.Ok = true
+		ret.Value = SiteVisit{
+			Site:        site.Value,
+			Populations: pops.Value,
+		}
+		ret.Next = pops.Next
+		return ret
+	}, 0x58)(b)
+}
+
 // envelopes the parser function fn with:
 // - prefix verification
 // - message length verification.
