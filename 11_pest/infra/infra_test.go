@@ -256,7 +256,6 @@ func TestParser(t *testing.T) {
 			runParseCase(t, c)
 		}
 	})
-
 }
 
 func TestEncoder(t *testing.T) {
@@ -269,6 +268,54 @@ func TestEncoder(t *testing.T) {
 
 	t.Run("Hello", func(t *testing.T) {
 		for _, c := range helloCases {
+			runEncodeCase(t, c)
+		}
+	})
+
+	t.Run("Error", func(t *testing.T) {
+		for _, c := range errorCases {
+			runEncodeCase(t, c)
+		}
+	})
+
+	t.Run("OK", func(t *testing.T) {
+		for _, c := range okCases {
+			runEncodeCase(t, c)
+		}
+	})
+
+	t.Run("DialAuthority", func(t *testing.T) {
+		for _, c := range dialAuthorityCases {
+			runEncodeCase(t, c)
+		}
+	})
+
+	t.Run("TargetPopulations", func(t *testing.T) {
+		for _, c := range targetPopCases {
+			runEncodeCase(t, c)
+		}
+	})
+
+	t.Run("CreatePolicy", func(t *testing.T) {
+		for _, c := range createPolicyCases {
+			runEncodeCase(t, c)
+		}
+	})
+
+	t.Run("DeletePolicy", func(t *testing.T) {
+		for _, c := range deletePolicyCases {
+			runEncodeCase(t, c)
+		}
+	})
+
+	t.Run("PolicyResult", func(t *testing.T) {
+		for _, c := range policyResultCases {
+			runEncodeCase(t, c)
+		}
+	})
+
+	t.Run("SiteVisit", func(t *testing.T) {
+		for _, c := range siteVisitCases {
 			runEncodeCase(t, c)
 		}
 	})
