@@ -8,11 +8,11 @@ import (
 )
 
 type Site interface {
+	GetSite() uint32
 	Connect() error
 	Close()
 	GetPops() (types.TargetPopulations, error)
-	CreatePolicy(types.CreatePolicy) (types.PolicyResult, error)
-	DeletePolicy(types.DeletePolicy) (types.OK, error)
+	UpdatePolicy(types.CreatePolicy) error
 }
 
 type CSite struct {
@@ -28,6 +28,10 @@ type CSite struct {
 	okChan           chan types.OK
 	targetPopChan    chan types.TargetPopulations
 	policyResultChan chan types.PolicyResult
+
+	// need to ensure only one policy is active
+	// key is species name
+	policies map[string]types.PolicyResult
 }
 
 func NewSite(site uint32) Site {
@@ -37,11 +41,18 @@ func NewSite(site uint32) Site {
 		okChan:           make(chan types.OK),
 		targetPopChan:    make(chan types.TargetPopulations),
 		policyResultChan: make(chan types.PolicyResult),
+		policies:         make(map[string]types.PolicyResult),
 	}
 
 	return s
 }
 
+func (s *CSite) GetSite() uint32 {
+	return s.site
+}
+
+// Connect is the initialization code.
+// It is long and thus can be awaited
 func (s *CSite) Connect() error {
 	conn, err := net.Dial("tcp", "pestcontrol.protohackers.com:20547")
 	if err != nil {
@@ -127,7 +138,28 @@ func (s *CSite) GetPops() (ret types.TargetPopulations, err error) {
 	return s.targetPop, nil
 }
 
-func (s *CSite) CreatePolicy(pol types.CreatePolicy) (ret types.PolicyResult, err error) {
+// update policy.
+// also ensures that there is only 1 policy in place
+func (s *CSite) UpdatePolicy(pol types.CreatePolicy) error {
+	prev, ok := s.policies[pol.Species]
+	if !ok {
+		_, err := s.deletePolicy(types.DeletePolicy{
+			Policy: prev.Policy,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	ret, err := s.createPolicy(pol)
+	if err != nil {
+		return err
+	}
+	s.policies[pol.Species] = ret
+	return nil
+}
+
+func (s *CSite) createPolicy(pol types.CreatePolicy) (ret types.PolicyResult, err error) {
 	polB := infra.Encode(pol)
 	_, err = s.c.Write(polB)
 	if err != nil {
@@ -138,7 +170,7 @@ func (s *CSite) CreatePolicy(pol types.CreatePolicy) (ret types.PolicyResult, er
 	return
 }
 
-func (s *CSite) DeletePolicy(pol types.DeletePolicy) (ret types.OK, err error) {
+func (s *CSite) deletePolicy(pol types.DeletePolicy) (ret types.OK, err error) {
 	polB := infra.Encode(pol)
 	_, err = s.c.Write(polB)
 	if err != nil {
