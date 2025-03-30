@@ -19,7 +19,7 @@ func main() {
 
 	defer ln.Close()
 
-	pc := pest.NewController()
+	pc := pest.NewControllerTCP()
 
 	for {
 		c, err := ln.Accept()
