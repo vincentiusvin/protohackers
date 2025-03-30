@@ -142,10 +142,8 @@ func (s *CSite) GetPops() (ret types.TargetPopulations, err error) {
 // also ensures that there is only 1 policy in place
 func (s *CSite) UpdatePolicy(pol types.CreatePolicy) error {
 	prev, ok := s.policies[pol.Species]
-	if !ok {
-		_, err := s.deletePolicy(types.DeletePolicy{
-			Policy: prev.Policy,
-		})
+	if ok {
+		_, err := s.deletePolicy(types.DeletePolicy(prev))
 		if err != nil {
 			return err
 		}
