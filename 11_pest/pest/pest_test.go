@@ -50,7 +50,28 @@ func TestGetPops(t *testing.T) {
 	if !reflect.DeepEqual(target, result) {
 		t.Fatalf("different pops. exp %v got %v", target, result)
 	}
+}
 
+func TestUpdatePolicy(t *testing.T) {
+	var siteNum uint32 = 12345
+	s, _, out, err := fixture(siteNum)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go s.UpdatePolicy(types.CreatePolicy{
+		Species: "kucing",
+		Action:  types.PolicyCull,
+	})
+
+	popsOut := <-out
+	expPops := types.CreatePolicy{
+		Species: "kucing",
+		Action:  types.PolicyCull,
+	}
+	if !reflect.DeepEqual(expPops, popsOut) {
+		t.Fatalf("wrong out exp %v got %v", expPops, popsOut)
+	}
 }
 
 func fixture(site uint32) (s pest.Site, in chan any, out chan any, err error) {
