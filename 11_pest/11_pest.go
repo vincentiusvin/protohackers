@@ -74,8 +74,8 @@ func processIncoming(c net.Conn) (helloChan chan types.Hello, visitChan chan typ
 		var curr []byte
 		for {
 			b := make([]byte, 1024)
-			_, err := c.Read(b)
-			curr = append(curr, b...)
+			n, err := c.Read(b)
+			curr = append(curr, b[:n]...)
 			if err != nil {
 				break
 			}
