@@ -8,37 +8,57 @@ import (
 )
 
 func TestSiteVisit(t *testing.T) {
-	var sitenum uint32 = 12345
-	s := newMockSite(sitenum)
-
-	factory := func(site uint32) (pest.Site, error) {
-		return s, nil
+	type visitCases struct {
+		inCount uint32
+		action  types.Policy
 	}
-	c := pest.NewController(factory)
 
-	sv1 := types.SiteVisit{
-		Site: sitenum,
-		Populations: []types.SiteVisitEntry{
-			{
-				Species: "kucing",
-				Count:   250,
-			},
+	cases := []visitCases{
+		{
+			inCount: 250,
+			action:  types.PolicyCull,
+		},
+		{
+			inCount: 5,
+			action:  types.PolicyConserve,
 		},
 	}
 
-	err := c.AddSiteVisit(sv1)
-	if err != nil {
-		t.Fatal(err)
-	}
+	for _, cs := range cases {
+		t.Run("visit", func(t *testing.T) {
+			var sitenum uint32 = 12345
+			s := newMockSite(sitenum)
 
-	outPol := <-s.policies
-	expPol := types.CreatePolicy{
-		Species: "kucing",
-		Action:  types.PolicyCull,
-	}
+			factory := func(site uint32) (pest.Site, error) {
+				return s, nil
+			}
+			c := pest.NewController(factory)
 
-	if !reflect.DeepEqual(expPol, outPol) {
-		t.Fatalf("wrong policy. exp %v got %v", expPol, outPol)
+			sv1 := types.SiteVisit{
+				Site: sitenum,
+				Populations: []types.SiteVisitEntry{
+					{
+						Species: "kucing",
+						Count:   cs.inCount,
+					},
+				},
+			}
+
+			err := c.AddSiteVisit(sv1)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			outPol := <-s.policies
+			expPol := types.CreatePolicy{
+				Species: "kucing",
+				Action:  cs.action,
+			}
+
+			if !reflect.DeepEqual(expPol, outPol) {
+				t.Fatalf("wrong policy. exp %v got %v", expPol, outPol)
+			}
+		})
 	}
 
 }
