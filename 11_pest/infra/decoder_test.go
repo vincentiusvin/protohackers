@@ -97,3 +97,66 @@ func TestOK(t *testing.T) {
 		t.Fatalf("wrong parse result. exp %v got %v", exp, p.Value)
 	}
 }
+
+func TestDialAuthority(t *testing.T) {
+	p := parseDialAuthority([]byte{
+		0x53,
+		0x00, 0x00, 0x00, 0x0a,
+		0x00, 0x00, 0x30, 0x39,
+		0x3a,
+	})
+
+	exp := DialAuthority{
+		Site: 12345,
+	}
+
+	if !p.Ok {
+		t.Fatalf("failed to parse")
+	}
+
+	if !reflect.DeepEqual(p.Value, exp) {
+		t.Fatalf("wrong parse result. exp %v got %v", exp, p.Value)
+	}
+}
+
+func TestTargetPopulations(t *testing.T) {
+	p := parseTargetPopulations([]byte{
+		0x54,
+		0x00, 0x00, 0x00, 0x2c,
+		0x00, 0x00, 0x30, 0x39,
+		0x00, 0x00, 0x00, 0x02,
+		0x00, 0x00, 0x00, 0x03,
+		0x64, 0x6f, 0x67,
+		0x00, 0x00, 0x00, 0x01,
+		0x00, 0x00, 0x00, 0x03,
+		0x00, 0x00, 0x00, 0x03,
+		0x72, 0x61, 0x74,
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x0a,
+		0x80,
+	})
+
+	exp := TargetPopulations{
+		Site: 12345,
+		Populations: []TargetPopulationsEntry{
+			{
+				Species: "dog",
+				Min:     1,
+				Max:     3,
+			},
+			{
+				Species: "rat",
+				Min:     0,
+				Max:     10,
+			},
+		},
+	}
+
+	if !p.Ok {
+		t.Fatalf("failed to parse")
+	}
+
+	if !reflect.DeepEqual(p.Value, exp) {
+		t.Fatalf("wrong parse result. exp %v got %v", exp, p.Value)
+	}
+}

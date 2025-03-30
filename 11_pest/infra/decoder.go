@@ -66,6 +66,83 @@ func parseOk(b []byte) ParseResult[OK] {
 	}, 0x52)(b)
 }
 
+type DialAuthority struct {
+	Site uint32
+}
+
+func parseDialAuthority(b []byte) ParseResult[DialAuthority] {
+	return envelope(func(b []byte) (ret ParseResult[DialAuthority]) {
+		site := parseUint32(b)
+		if !site.Ok {
+			return ret
+		}
+		ret.Ok = true
+		ret.Value = DialAuthority{
+			Site: site.Value,
+		}
+		ret.Next = site.Next
+		return ret
+	}, 0x53)(b)
+}
+
+type TargetPopulationsEntry struct {
+	Species string
+	Min     uint32
+	Max     uint32
+}
+
+func parseTargetPopulationsEntry(b []byte) (ret ParseResult[TargetPopulationsEntry]) {
+	species := parseString(b)
+	if !species.Ok {
+		return ret
+	}
+
+	min := parseUint32(species.Next)
+	if !min.Ok {
+		return ret
+	}
+
+	max := parseUint32(min.Next)
+	if !max.Ok {
+		return ret
+	}
+
+	ret.Ok = true
+	ret.Value = TargetPopulationsEntry{
+		Species: species.Value,
+		Min:     min.Value,
+		Max:     max.Value,
+	}
+	ret.Next = max.Next
+	return ret
+}
+
+type TargetPopulations struct {
+	Site        uint32
+	Populations []TargetPopulationsEntry
+}
+
+func parseTargetPopulations(b []byte) ParseResult[TargetPopulations] {
+	return envelope(func(b []byte) (ret ParseResult[TargetPopulations]) {
+		site := parseUint32(b)
+		if !site.Ok {
+			return ret
+		}
+		pops := parseArray(parseTargetPopulationsEntry)(site.Next)
+		if !pops.Ok {
+			return ret
+		}
+
+		ret.Ok = true
+		ret.Value = TargetPopulations{
+			Site:        site.Value,
+			Populations: pops.Value,
+		}
+		ret.Next = pops.Next
+		return ret
+	}, 0x54)(b)
+}
+
 // envelopes the parser function fn with:
 // - prefix verification
 // - message length verification.
