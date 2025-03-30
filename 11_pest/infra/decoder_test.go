@@ -31,3 +31,25 @@ func TestArray(t *testing.T) {
 		t.Fatalf("wrong parse result. exp %v got %v", exp, p.Value)
 	}
 }
+
+func TestHello(t *testing.T) {
+	p := parseHello([]byte{
+		0x50,
+		0x00, 0x00, 0x00, 0x19,
+		0x00, 0x00, 0x00, 0x0b,
+		0x70, 0x65, 0x73, 0x74,
+		0x63, 0x6f, 0x6e, 0x74,
+		0x72, 0x6f, 0x6c,
+		0x00, 0x00, 0x00, 0x01,
+		0xce,
+	})
+
+	exp := Hello{
+		Protocol: "pestcontrol",
+		Version:  1,
+	}
+
+	if !reflect.DeepEqual(p.Value, exp) {
+		t.Fatalf("wrong parse result. exp %v got %v", exp, p.Value)
+	}
+}
