@@ -11,9 +11,62 @@ type ParseResult[T any] struct {
 	Ok    bool
 }
 
-type Hello struct {
-	Protocol string
-	Version  uint32
+func Parse(b []byte) (ret ParseResult[any]) {
+	// parse prefix first, but do not advance the byte stream.
+	prefix := parseUint8(b)
+	if !prefix.Ok {
+		return ret
+	}
+
+	switch prefix.Value {
+	case 0x50:
+		res := parseHello(b)
+		ret.Ok = res.Ok
+		ret.Next = res.Next
+		ret.Value = res.Value
+	case 0x51:
+		res := parseError(b)
+		ret.Ok = res.Ok
+		ret.Next = res.Next
+		ret.Value = res.Value
+	case 0x52:
+		res := parseOk(b)
+		ret.Ok = res.Ok
+		ret.Next = res.Next
+		ret.Value = res.Value
+	case 0x53:
+		res := parseDialAuthority(b)
+		ret.Ok = res.Ok
+		ret.Next = res.Next
+		ret.Value = res.Value
+	case 0x54:
+		res := parseTargetPopulations(b)
+		ret.Ok = res.Ok
+		ret.Next = res.Next
+		ret.Value = res.Value
+	case 0x55:
+		res := parseCreatePolicy(b)
+		ret.Ok = res.Ok
+		ret.Next = res.Next
+		ret.Value = res.Value
+	case 0x56:
+		res := parseDeletePolicy(b)
+		ret.Ok = res.Ok
+		ret.Next = res.Next
+		ret.Value = res.Value
+	case 0x57:
+		res := parsePolicyResult(b)
+		ret.Ok = res.Ok
+		ret.Next = res.Next
+		ret.Value = res.Value
+	case 0x58:
+		res := parseSiteVisit(b)
+		ret.Ok = res.Ok
+		ret.Next = res.Next
+		ret.Value = res.Value
+	}
+
+	return ret
 }
 
 func parseHello(b []byte) ParseResult[Hello] {
@@ -37,10 +90,6 @@ func parseHello(b []byte) ParseResult[Hello] {
 	}, 0x50)(b)
 }
 
-type Error struct {
-	Message string
-}
-
 func parseError(b []byte) ParseResult[Error] {
 	return envelope(func(b []byte) (ret ParseResult[Error]) {
 		message := parseString(b)
@@ -56,18 +105,12 @@ func parseError(b []byte) ParseResult[Error] {
 	}, 0x51)(b)
 }
 
-type OK struct{}
-
 func parseOk(b []byte) ParseResult[OK] {
 	return envelope(func(b []byte) (ret ParseResult[OK]) {
 		ret.Ok = true
 		ret.Next = b
 		return ret
 	}, 0x52)(b)
-}
-
-type DialAuthority struct {
-	Site uint32
 }
 
 func parseDialAuthority(b []byte) ParseResult[DialAuthority] {
@@ -83,12 +126,6 @@ func parseDialAuthority(b []byte) ParseResult[DialAuthority] {
 		ret.Next = site.Next
 		return ret
 	}, 0x53)(b)
-}
-
-type TargetPopulationsEntry struct {
-	Species string
-	Min     uint32
-	Max     uint32
 }
 
 func parseTargetPopulationsEntry(b []byte) (ret ParseResult[TargetPopulationsEntry]) {
@@ -117,11 +154,6 @@ func parseTargetPopulationsEntry(b []byte) (ret ParseResult[TargetPopulationsEnt
 	return ret
 }
 
-type TargetPopulations struct {
-	Site        uint32
-	Populations []TargetPopulationsEntry
-}
-
 func parseTargetPopulations(b []byte) ParseResult[TargetPopulations] {
 	return envelope(func(b []byte) (ret ParseResult[TargetPopulations]) {
 		site := parseUint32(b)
@@ -141,18 +173,6 @@ func parseTargetPopulations(b []byte) ParseResult[TargetPopulations] {
 		ret.Next = pops.Next
 		return ret
 	}, 0x54)(b)
-}
-
-type Policy uint8
-
-var (
-	PolicyCull     Policy = 0x90
-	PolicyConserve Policy = 0xa0
-)
-
-type CreatePolicy struct {
-	Species string
-	Action  Policy
 }
 
 func parseCreatePolicy(b []byte) ParseResult[CreatePolicy] {
@@ -181,10 +201,6 @@ func parseCreatePolicy(b []byte) ParseResult[CreatePolicy] {
 	}, 0x55)(b)
 }
 
-type DeletePolicy struct {
-	Policy uint32
-}
-
 func parseDeletePolicy(b []byte) ParseResult[DeletePolicy] {
 	return envelope(func(b []byte) (ret ParseResult[DeletePolicy]) {
 		policy := parseUint32(b)
@@ -201,10 +217,6 @@ func parseDeletePolicy(b []byte) ParseResult[DeletePolicy] {
 	}, 0x56)(b)
 }
 
-type PolicyResult struct {
-	Policy uint32
-}
-
 func parsePolicyResult(b []byte) ParseResult[PolicyResult] {
 	return envelope(func(b []byte) (ret ParseResult[PolicyResult]) {
 		policy := parseUint32(b)
@@ -219,11 +231,6 @@ func parsePolicyResult(b []byte) ParseResult[PolicyResult] {
 		ret.Next = policy.Next
 		return ret
 	}, 0x57)(b)
-}
-
-type SiteVisitEntry struct {
-	Species string
-	Count   uint32
 }
 
 func parseSiteVisitEntry(b []byte) (ret ParseResult[SiteVisitEntry]) {
@@ -244,11 +251,6 @@ func parseSiteVisitEntry(b []byte) (ret ParseResult[SiteVisitEntry]) {
 	}
 	ret.Next = count.Next
 	return ret
-}
-
-type SiteVisit struct {
-	Site        uint32
-	Populations []SiteVisitEntry
 }
 
 func parseSiteVisit(b []byte) ParseResult[SiteVisit] {
