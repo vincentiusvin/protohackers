@@ -62,7 +62,7 @@ func (s *CSite) Connect() error {
 	s.c = conn
 	go s.processIncoming()
 	s.handshake()
-	log.Printf("%v connected\n", s.site)
+	log.Printf("%v setup finished\n", s.site)
 	return nil
 }
 
@@ -111,10 +111,14 @@ func (s *CSite) handshake() error {
 		return err
 	}
 
+	log.Printf("%v sent hello\n", s.site)
+
 	helloReply := <-s.helloChan
 	if helloReply.Protocol != "pestcontrol" || helloReply.Version != 1 {
 		return fmt.Errorf("got invalid handshake reply %v", helloReply)
 	}
+
+	log.Printf("%v got hello\n", s.site)
 
 	return nil
 }

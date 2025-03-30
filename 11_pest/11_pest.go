@@ -42,6 +42,18 @@ func handleConn(c net.Conn, pc pest.Controller) {
 	if helloReply.Protocol != "pestcontrol" || helloReply.Version != 1 {
 		return
 	}
+	log.Println("[%v] got hello\n", addr)
+
+	helloB := infra.Encode(types.Hello{
+		Protocol: "pestcontrol",
+		Version:  1,
+	})
+
+	_, err := c.Write(helloB)
+	if err != nil {
+		return
+	}
+	log.Printf("[%v] sent hello\n", addr)
 
 	for v := range visitChan {
 		log.Printf("[%v] added visit\n", v)
