@@ -74,60 +74,7 @@ func TestSiteVisit(t *testing.T) {
 	}
 }
 
-func TestConccurentCreation(t *testing.T) {
-	var sitenum uint32 = 12345
-	var called atomic.Int32
-	s := newMockSite(sitenum, 0)
-	factory := func(site uint32) (pest.Site, error) {
-		time.Sleep(50 * time.Millisecond)
-		called.Add(1)
-		return s, nil
-	}
-	c := pest.NewController(factory)
-
-	svs := []types.SiteVisit{
-		{
-			Site: sitenum,
-			Populations: []types.SiteVisitEntry{
-				{
-					Species: "kucing",
-					Count:   200,
-				},
-			},
-		},
-		{
-			Site: sitenum,
-			Populations: []types.SiteVisitEntry{
-				{
-					Species: "anjing",
-					Count:   199,
-				},
-			},
-		},
-	}
-
-	go func() {
-		for range svs {
-			<-s.policies
-		}
-	}()
-
-	for _, sv := range svs {
-		err := c.AddSiteVisit(sv)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	time.Sleep(250 * time.Millisecond)
-	log.Println(called.Load())
-	if called.Load() != 1 {
-		t.Fatal("expected factory function to be called once")
-	}
-
-}
-
-func TestConcurrency(t *testing.T) {
+func TestSubsequent(t *testing.T) {
 	var sitenum uint32 = 12345
 	s := newMockSite(sitenum, 0)
 
@@ -212,6 +159,59 @@ func TestConcurrency(t *testing.T) {
 			t.Fatalf("wrong policy. exp %v got %v", expPol, outPol)
 		}
 	}
+}
+
+func TestConccurentCreation(t *testing.T) {
+	var sitenum uint32 = 12345
+	var called atomic.Int32
+	s := newMockSite(sitenum, 0)
+	factory := func(site uint32) (pest.Site, error) {
+		time.Sleep(50 * time.Millisecond)
+		called.Add(1)
+		return s, nil
+	}
+	c := pest.NewController(factory)
+
+	svs := []types.SiteVisit{
+		{
+			Site: sitenum,
+			Populations: []types.SiteVisitEntry{
+				{
+					Species: "kucing",
+					Count:   200,
+				},
+			},
+		},
+		{
+			Site: sitenum,
+			Populations: []types.SiteVisitEntry{
+				{
+					Species: "anjing",
+					Count:   199,
+				},
+			},
+		},
+	}
+
+	go func() {
+		for range svs {
+			<-s.policies
+		}
+	}()
+
+	for _, sv := range svs {
+		err := c.AddSiteVisit(sv)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	time.Sleep(200 * time.Millisecond)
+	log.Println(called.Load())
+	if called.Load() != 1 {
+		t.Fatal("expected factory function to be called once")
+	}
+
 }
 
 type mockSite struct {
