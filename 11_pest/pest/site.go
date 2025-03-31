@@ -15,7 +15,6 @@ type Site interface {
 	UpdatePolicy(types.CreatePolicy) error
 }
 
-// this struct is not thread safe
 type CSite struct {
 	mu sync.Mutex
 
@@ -34,8 +33,7 @@ type CSite struct {
 
 	// need to ensure only one policy is active
 	// key is species name
-	// map[string]types.PolicyResult
-	policies sync.Map
+	policies map[string]types.PolicyResult
 }
 
 func NewSite(site uint32, c io.ReadWriteCloser) Site {
@@ -46,6 +44,7 @@ func NewSite(site uint32, c io.ReadWriteCloser) Site {
 		okChan:           make(chan types.OK),
 		targetPopChan:    make(chan types.TargetPopulations),
 		policyResultChan: make(chan types.PolicyResult),
+		policies:         make(map[string]types.PolicyResult),
 	}
 
 	go s.processIncoming()
@@ -149,15 +148,14 @@ func (s *CSite) UpdatePolicy(pol types.CreatePolicy) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	prev, ok := s.policies.Load(pol.Species)
+	prev, ok := s.policies[pol.Species]
 	if ok {
-		prevCast := prev.(types.PolicyResult)
-		log.Printf("%v policy for %v detected (%v)\n", s.site, pol.Species, prevCast.Policy)
-		_, err := s.deletePolicy(types.DeletePolicy(prevCast), pol.Species)
+		log.Printf("%v policy for %v detected (%v)\n", s.site, pol.Species, prev.Policy)
+		_, err := s.deletePolicy(types.DeletePolicy(prev), pol.Species)
 		if err != nil {
 			return err
 		}
-		s.policies.Delete(pol.Species)
+		delete(s.policies, pol.Species)
 	} else {
 		log.Printf("%v policy for %v not detected\n", s.site, pol.Species)
 	}
@@ -167,7 +165,7 @@ func (s *CSite) UpdatePolicy(pol types.CreatePolicy) error {
 		if err != nil {
 			return err
 		}
-		s.policies.Store(pol.Species, ret)
+		s.policies[pol.Species] = ret
 	}
 
 	return nil

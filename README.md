@@ -105,3 +105,5 @@ Used interfaces to hide variables from code in the same package, why didn't i th
 
 Had to do a bunch of parsing like in challenge 6, but functional parsing seems to be really nice here.
 Made a bunch of parser combinators too :)
+
+Spent too much time not noticing that no species entry means it counts as 0.
