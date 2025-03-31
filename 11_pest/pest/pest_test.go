@@ -12,22 +12,50 @@ import (
 
 func TestSiteVisit(t *testing.T) {
 	type visitCases struct {
-		inCount uint32
-		action  types.Policy
+		inPops []types.SiteVisitEntry
+		action types.Policy
 	}
 
 	cases := []visitCases{
 		{
-			inCount: 250,
-			action:  types.PolicyCull,
+			inPops: []types.SiteVisitEntry{
+				{
+					Species: "kucing",
+					Count:   250,
+				},
+			},
+			action: types.PolicyCull,
 		},
 		{
-			inCount: 5,
-			action:  types.PolicyConserve,
+			inPops: []types.SiteVisitEntry{
+				{
+					Species: "kucing",
+					Count:   5,
+				},
+			},
+			action: types.PolicyConserve,
 		},
 		{
-			inCount: 15,
-			action:  types.PolicyNothing,
+			inPops: []types.SiteVisitEntry{
+				{
+					Species: "kucing",
+					Count:   15,
+				},
+			},
+			action: types.PolicyNothing,
+		},
+		{
+			inPops: []types.SiteVisitEntry{
+				{
+					Species: "kucing",
+					Count:   0,
+				},
+			},
+			action: types.PolicyConserve,
+		},
+		{
+			inPops: []types.SiteVisitEntry{}, // no entries means 0
+			action: types.PolicyConserve,
 		},
 	}
 
@@ -42,13 +70,8 @@ func TestSiteVisit(t *testing.T) {
 			c := pest.NewController(factory)
 
 			sv1 := types.SiteVisit{
-				Site: sitenum,
-				Populations: []types.SiteVisitEntry{
-					{
-						Species: "kucing",
-						Count:   cs.inCount,
-					},
-				},
+				Site:        sitenum,
+				Populations: cs.inPops,
 			}
 
 			retval := make(chan error)
@@ -211,7 +234,6 @@ func TestConccurentCreation(t *testing.T) {
 	if called.Load() != 1 {
 		t.Fatal("expected factory function to be called once")
 	}
-
 }
 
 type mockSite struct {
@@ -241,7 +263,7 @@ func (ms *mockSite) GetPops() (types.TargetPopulations, error) {
 			},
 			{
 				Species: "anjing",
-				Min:     10,
+				Min:     0,
 				Max:     20,
 			},
 		},
