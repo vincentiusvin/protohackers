@@ -81,45 +81,6 @@ func (c *CController) synchronize() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	syncIndividualData := func(visited visitSync) bool {
-		s, err := c.getSite(visited.site)
-		if err != nil {
-			return false
-		}
-		pops, err := s.GetPops()
-		if err != nil {
-			return false
-		}
-
-		var pop types.TargetPopulationsEntry
-		var popFound bool
-		for _, targetPop := range pops.Populations {
-			if targetPop.Species != visited.species {
-				continue
-			}
-			popFound = true
-			pop = targetPop
-		}
-
-		if !popFound {
-			return false
-		}
-
-		pol := types.CreatePolicy{
-			Species: visited.species,
-		}
-
-		if visited.count < pop.Min {
-			pol.Action = types.PolicyConserve
-			s.UpdatePolicy(pol)
-		} else if visited.count > pop.Max {
-			pol.Action = types.PolicyCull
-			s.UpdatePolicy(pol)
-		}
-
-		return true
-	}
-
 	log.Println("synchronizing data")
 	var wg sync.WaitGroup
 	for _, visited := range c.visitData {
@@ -130,16 +91,59 @@ func (c *CController) synchronize() {
 		copied := *visited
 		go func() {
 			defer wg.Done()
-			res := syncIndividualData(copied)
+			res := c.syncIndividualData(copied)
 			if res {
+				c.mu.Lock()
 				visited.synced = true
+				c.mu.Unlock()
 			}
 		}()
 	}
 
+	c.mu.Unlock()
 	wg.Wait()
+	c.mu.Lock()
 
 	log.Println("data synced")
+}
+
+func (c *CController) syncIndividualData(visited visitSync) bool {
+	s, err := c.getSite(visited.site)
+	if err != nil {
+		return false
+	}
+	pops, err := s.GetPops()
+	if err != nil {
+		return false
+	}
+
+	var pop types.TargetPopulationsEntry
+	var popFound bool
+	for _, targetPop := range pops.Populations {
+		if targetPop.Species != visited.species {
+			continue
+		}
+		popFound = true
+		pop = targetPop
+	}
+
+	if !popFound {
+		return false
+	}
+
+	pol := types.CreatePolicy{
+		Species: visited.species,
+	}
+
+	if visited.count < pop.Min {
+		pol.Action = types.PolicyConserve
+		s.UpdatePolicy(pol)
+	} else if visited.count > pop.Max {
+		pol.Action = types.PolicyCull
+		s.UpdatePolicy(pol)
+	}
+
+	return true
 }
 
 // this needs to be locked per site.
