@@ -1,10 +1,13 @@
 package pest_test
 
 import (
+	"log"
 	"protohackers/11_pest/pest"
 	"protohackers/11_pest/types"
 	"reflect"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestSiteVisit(t *testing.T) {
@@ -60,6 +63,53 @@ func TestSiteVisit(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestConccurentCreation(t *testing.T) {
+	var sitenum uint32 = 12345
+	var called atomic.Int32
+	factory := func(site uint32) (pest.Site, error) {
+		time.Sleep(100 * time.Millisecond)
+		called.Add(1)
+		return newMockSite(sitenum, 0), nil
+	}
+	c := pest.NewController(factory)
+
+	svs := []types.SiteVisit{
+		{
+			Site: sitenum,
+			Populations: []types.SiteVisitEntry{
+				{
+					Species: "kucing",
+					Count:   200,
+				},
+			},
+		},
+		{
+			Site: sitenum,
+			Populations: []types.SiteVisitEntry{
+				{
+					Species: "anjing",
+					Count:   199,
+				},
+			},
+		},
+	}
+
+	// all should run without blocking
+	for _, sv := range svs {
+		err := c.AddSiteVisit(sv)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	time.Sleep(500 * time.Millisecond)
+	log.Println(called.Load())
+	if called.Load() != 1 {
+		t.Fatal("expected factory function to be called once")
+	}
+
 }
 
 func TestConcurrency(t *testing.T) {
@@ -160,6 +210,11 @@ func (ms *mockSite) GetPops() (types.TargetPopulations, error) {
 		Populations: []types.TargetPopulationsEntry{
 			{
 				Species: "kucing",
+				Min:     10,
+				Max:     20,
+			},
+			{
+				Species: "anjing",
 				Min:     10,
 				Max:     20,
 			},

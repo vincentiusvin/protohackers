@@ -149,10 +149,14 @@ func (s *CSite) GetPops() (ret types.TargetPopulations, err error) {
 func (s *CSite) UpdatePolicy(pol types.CreatePolicy) error {
 	prev, ok := s.policies.Load(pol.Species)
 	if ok {
-		_, err := s.deletePolicy(types.DeletePolicy(prev.(types.PolicyResult)))
+		prevCast := prev.(types.PolicyResult)
+		log.Printf("%v policy for %v detected: %v\n", s.site, pol.Species, prevCast.Policy)
+		_, err := s.deletePolicy(types.DeletePolicy(prevCast))
 		if err != nil {
 			return err
 		}
+	} else {
+		log.Printf("%v policy for %v not detected\n", s.site, pol.Species)
 	}
 
 	ret, err := s.createPolicy(pol)
