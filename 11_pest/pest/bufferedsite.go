@@ -4,15 +4,13 @@ import (
 	"io"
 	"net"
 	"protohackers/11_pest/types"
-	"sync"
 )
 
 type BufferedSite struct {
 	site Site
-	mu   sync.Mutex
 
 	// queue, group by species
-	queue map[string]chan types.CreatePolicy
+	store chan types.CreatePolicy
 }
 
 func NewBufferedSiteTCP(site uint32) (Site, error) {
@@ -24,10 +22,14 @@ func NewBufferedSiteTCP(site uint32) (Site, error) {
 }
 
 func NewBufferedSite(site uint32, c io.ReadWriteCloser) Site {
-	return &BufferedSite{
+	ret := &BufferedSite{
 		site:  NewSite(site, c),
-		queue: make(map[string]chan types.CreatePolicy),
+		store: make(chan types.CreatePolicy, 100),
 	}
+
+	go ret.run()
+
+	return ret
 }
 
 func (bs *BufferedSite) GetSite() uint32 {
@@ -39,24 +41,12 @@ func (bs *BufferedSite) GetPops() (types.TargetPopulations, error) {
 }
 
 func (bs *BufferedSite) UpdatePolicy(pol types.CreatePolicy) error {
-	worker := bs.getWorker(pol.Species)
-	worker <- pol
+	bs.store <- pol
 	return nil
 }
 
-func (bs *BufferedSite) getWorker(species string) chan types.CreatePolicy {
-	bs.mu.Lock()
-	defer bs.mu.Unlock()
-	if _, ok := bs.queue[species]; !ok {
-		ch := make(chan types.CreatePolicy)
-		bs.queue[species] = ch
-
-		go func() {
-			for pol := range ch {
-				bs.site.UpdatePolicy(pol)
-			}
-		}()
+func (bs *BufferedSite) run() {
+	for v := range bs.store {
+		bs.site.UpdatePolicy(v)
 	}
-
-	return bs.queue[species]
 }
