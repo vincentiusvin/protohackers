@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"net"
 	"protohackers/11_pest/infra"
@@ -55,11 +56,24 @@ func handleConn(c net.Conn, pc pest.Controller) {
 	}
 	log.Printf("[%v] sent hello\n", addr)
 
+	go func() {
+		<-helloChan
+		c.Close()
+	}()
+
 	for v := range visitChan {
 		log.Printf("[%v] added visit: %v\n", addr, v)
 		err = pc.AddSiteVisit(v)
+
 		if err != nil {
 			log.Printf("%v got err %v", addr, err)
+
+			if errors.Is(err, pest.ErrInvalidSiteVisit) {
+				errorB := infra.Encode(types.Error{
+					Message: err.Error(),
+				})
+				c.Write(errorB)
+			}
 			break
 		}
 	}
@@ -95,6 +109,8 @@ func processIncoming(c net.Conn) (helloChan chan types.Hello, visitChan chan typ
 					helloChan <- v
 				case types.SiteVisit:
 					visitChan <- v
+				default:
+					return
 				}
 
 				curr = res.Next

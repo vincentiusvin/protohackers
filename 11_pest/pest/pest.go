@@ -7,6 +7,10 @@ import (
 	"sync"
 )
 
+var (
+	ErrInvalidSiteVisit = fmt.Errorf("invalid site visit. found conflicting keys.")
+)
+
 type Controller interface {
 	AddSiteVisit(sv types.SiteVisit) error
 }
@@ -53,21 +57,27 @@ func (c *CController) AddSiteVisit(sv types.SiteVisit) error {
 		return err
 	}
 
+	visitLkp := make(map[string]types.SiteVisitEntry)
+
+	for _, visitEntry := range sv.Populations {
+		prev, ok := visitLkp[visitEntry.Species]
+		if ok && prev.Count != visitEntry.Count {
+			return ErrInvalidSiteVisit
+		}
+		visitLkp[visitEntry.Species] = visitEntry
+	}
+
 	for _, popLimit := range pops.Populations {
 		vd := VisitData{
 			species: popLimit.Species,
 			site:    sv.Site,
 			min:     popLimit.Min,
 			max:     popLimit.Max,
-			count:   0, // 0 if not found below
 		}
 
-		// map if too slow
-		for _, visitEntry := range sv.Populations {
-			if visitEntry.Species == popLimit.Species {
-				vd.count = visitEntry.Count
-				break
-			}
+		visit, ok := visitLkp[popLimit.Species]
+		if ok {
+			vd.count = visit.Count
 		}
 
 		err := c.updatePolicy(vd, site)
