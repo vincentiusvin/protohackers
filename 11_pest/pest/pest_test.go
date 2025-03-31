@@ -181,14 +181,27 @@ func TestConcurrency(t *testing.T) {
 		}
 	}
 
-	outPol := <-s.policies
-	expPol := types.CreatePolicy{
-		Species: "kucing",
-		Action:  types.PolicyConserve,
-	}
+	for i := 0; i < 4; i++ {
+		outPol := <-s.policies
+		expPol := types.CreatePolicy{
+			Species: "kucing",
+			Action:  types.PolicyCull,
+		}
 
-	if !reflect.DeepEqual(expPol, outPol) {
-		t.Fatalf("wrong policy. exp %v got %v", expPol, outPol)
+		if !reflect.DeepEqual(expPol, outPol) {
+			t.Fatalf("wrong policy. exp %v got %v", expPol, outPol)
+		}
+	}
+	for i := 0; i < 1; i++ {
+		outPol := <-s.policies
+		expPol := types.CreatePolicy{
+			Species: "kucing",
+			Action:  types.PolicyConserve,
+		}
+
+		if !reflect.DeepEqual(expPol, outPol) {
+			t.Fatalf("wrong policy. exp %v got %v", expPol, outPol)
+		}
 	}
 }
 
