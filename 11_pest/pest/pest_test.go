@@ -51,10 +51,10 @@ func TestSiteVisit(t *testing.T) {
 				},
 			}
 
-			err := c.AddSiteVisit(sv1)
-			if err != nil {
-				t.Fatal(err)
-			}
+			retval := make(chan error)
+			go func() {
+				retval <- c.AddSiteVisit(sv1)
+			}()
 
 			outPol := <-s.policies
 			expPol := types.CreatePolicy{
@@ -65,6 +65,11 @@ func TestSiteVisit(t *testing.T) {
 			if !reflect.DeepEqual(expPol, outPol) {
 				t.Fatalf("wrong policy. exp %v got %v", expPol, outPol)
 			}
+
+			err := <-retval
+			if err != nil {
+				t.Fatal(err)
+			}
 		})
 	}
 }
@@ -72,10 +77,11 @@ func TestSiteVisit(t *testing.T) {
 func TestConccurentCreation(t *testing.T) {
 	var sitenum uint32 = 12345
 	var called atomic.Int32
+	s := newMockSite(sitenum, 0)
 	factory := func(site uint32) (pest.Site, error) {
 		time.Sleep(50 * time.Millisecond)
 		called.Add(1)
-		return newMockSite(sitenum, 0), nil
+		return s, nil
 	}
 	c := pest.NewController(factory)
 
@@ -100,7 +106,12 @@ func TestConccurentCreation(t *testing.T) {
 		},
 	}
 
-	// all should run without blocking
+	go func() {
+		for range svs {
+			<-s.policies
+		}
+	}()
+
 	for _, sv := range svs {
 		err := c.AddSiteVisit(sv)
 		if err != nil {
@@ -173,13 +184,11 @@ func TestConcurrency(t *testing.T) {
 		},
 	}
 
-	// all should run without blocking
-	for _, sv := range svs {
-		err := c.AddSiteVisit(sv)
-		if err != nil {
-			t.Fatal(err)
+	go func() {
+		for _, sv := range svs {
+			c.AddSiteVisit(sv)
 		}
-	}
+	}()
 
 	for i := 0; i < 4; i++ {
 		outPol := <-s.policies
