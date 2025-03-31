@@ -47,19 +47,22 @@ func (c *CController) AddSiteVisit(sv types.SiteVisit) error {
 			site:    sv.Site,
 			count:   svEntry.Count,
 		}
-		c.syncIndividualData(vd)
+		err := c.syncIndividualData(vd)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 	return nil
 }
 
-func (c *CController) syncIndividualData(visited VisitData) bool {
+func (c *CController) syncIndividualData(visited VisitData) error {
 	s, err := c.getSite(visited.site)
 	if err != nil {
-		return false
+		return err
 	}
 	pops, err := s.GetPops()
 	if err != nil {
-		return false
+		return err
 	}
 
 	var pop types.TargetPopulationsEntry
@@ -73,7 +76,7 @@ func (c *CController) syncIndividualData(visited VisitData) bool {
 	}
 
 	if !popFound {
-		return false
+		return fmt.Errorf("failed to find species %v", visited.species)
 	}
 
 	pol := types.CreatePolicy{
@@ -94,9 +97,12 @@ func (c *CController) syncIndividualData(visited VisitData) bool {
 	}
 
 	log.Printf("%v changing policy for %v to be %v\n", s.GetSite(), pol.Species, actionLog)
-	s.UpdatePolicy(pol)
+	err = s.UpdatePolicy(pol)
+	if err != nil {
+		return err
+	}
 
-	return true
+	return nil
 }
 
 // this needs to be locked per site.

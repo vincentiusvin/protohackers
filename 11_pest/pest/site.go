@@ -17,6 +17,8 @@ type Site interface {
 
 // this struct is not thread safe
 type CSite struct {
+	mu sync.Mutex
+
 	site uint32
 	c    io.ReadWriteCloser
 
@@ -54,6 +56,9 @@ func NewSite(site uint32, c io.ReadWriteCloser) Site {
 }
 
 func (s *CSite) GetSite() uint32 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	return s.site
 }
 
@@ -115,6 +120,9 @@ func (s *CSite) handshake() error {
 }
 
 func (s *CSite) GetPops() (ret types.TargetPopulations, err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if s.targetPopOK {
 		return s.targetPop, nil
 	}
@@ -138,6 +146,9 @@ func (s *CSite) GetPops() (ret types.TargetPopulations, err error) {
 // update policy.
 // also ensures that there is only 1 policy in place
 func (s *CSite) UpdatePolicy(pol types.CreatePolicy) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	prev, ok := s.policies.Load(pol.Species)
 	if ok {
 		prevCast := prev.(types.PolicyResult)
@@ -178,7 +189,7 @@ func (s *CSite) createPolicy(pol types.CreatePolicy) (ret types.PolicyResult, er
 		action = "cull"
 	}
 
-	log.Printf("%v policy for %v: %v (%v)\n", s.site, pol.Species, action, ret.Policy)
+	log.Printf("%v created policy for %v: %v (%v)\n", s.site, pol.Species, action, ret.Policy)
 	return
 }
 
