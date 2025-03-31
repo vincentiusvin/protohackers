@@ -13,15 +13,10 @@ type Controller interface {
 
 type SiteFactory = func(site uint32) (Site, error)
 
-type visitSync struct {
+type VisitData struct {
 	species string
 	site    uint32
 	count   uint32
-	synced  bool
-}
-
-func (v visitSync) hash() string {
-	return fmt.Sprintf("%v-%v", v.site, v.species)
 }
 
 type CController struct {
@@ -29,10 +24,8 @@ type CController struct {
 	sites       map[uint32]Site
 	siteFactory SiteFactory
 
-	// synchronize with authority server
-	syncCh chan struct{}
 	// based on hash() of visitSync
-	visitData map[string]*visitSync
+	visitDataQueue map[string][]*VisitData
 }
 
 func NewControllerTCP() Controller {
@@ -41,12 +34,10 @@ func NewControllerTCP() Controller {
 
 func NewController(siteFactory SiteFactory) Controller {
 	c := &CController{
-		sites:       make(map[uint32]Site),
-		siteFactory: siteFactory,
-		visitData:   make(map[string]*visitSync),
-		syncCh:      make(chan struct{}, 1), // buffered to represent needing to sync
+		sites:          make(map[uint32]Site),
+		siteFactory:    siteFactory,
+		visitDataQueue: make(map[string][]*VisitData),
 	}
-	go c.runSynchronize()
 	return c
 }
 
@@ -55,48 +46,17 @@ func (c *CController) AddSiteVisit(sv types.SiteVisit) error {
 	defer c.mu.Unlock()
 
 	for _, svEntry := range sv.Populations {
-		vs := visitSync{
+		vd := VisitData{
 			species: svEntry.Species,
 			site:    sv.Site,
 			count:   svEntry.Count,
-			synced:  false,
 		}
-		c.visitData[vs.hash()] = &vs
-	}
-	log.Println("updating site visit data")
-
-	select {
-	case c.syncCh <- struct{}{}:
-	default:
+		c.syncIndividualData(vd)
 	}
 	return nil
 }
 
-func (c *CController) runSynchronize() {
-	for range c.syncCh {
-		c.synchronize()
-	}
-}
-
-func (c *CController) synchronize() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	log.Println("synchronizing data")
-	for _, visited := range c.visitData {
-		if visited.synced {
-			continue
-		}
-		copied := *visited
-		res := c.syncIndividualData(copied)
-		if res {
-			visited.synced = true
-		}
-	}
-	log.Println("data synced")
-}
-
-func (c *CController) syncIndividualData(visited visitSync) bool {
+func (c *CController) syncIndividualData(visited VisitData) bool {
 	s, err := c.getSite(visited.site)
 	if err != nil {
 		return false
