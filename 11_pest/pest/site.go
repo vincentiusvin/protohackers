@@ -138,7 +138,7 @@ func (s *CSite) GetPops() (ret types.TargetPopulations, err error) {
 
 	s.targetPop = <-s.targetPopChan
 	s.targetPopOK = true
-	log.Printf("%v pop reading updated %v\n", s.site, s.targetPop)
+	log.Printf("%v pop limits updated %v\n", s.site, s.targetPop.Populations)
 
 	return s.targetPop, nil
 }
