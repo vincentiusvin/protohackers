@@ -26,7 +26,7 @@ func (v visitSync) hash() string {
 
 type CController struct {
 	mu          sync.Mutex
-	sites       map[uint32]SiteFetcher
+	sites       map[uint32]Site
 	siteFactory SiteFactory
 
 	// synchronize with authority server
@@ -41,7 +41,7 @@ func NewControllerTCP() Controller {
 
 func NewController(siteFactory SiteFactory) Controller {
 	c := &CController{
-		sites:       make(map[uint32]SiteFetcher),
+		sites:       make(map[uint32]Site),
 		siteFactory: siteFactory,
 		visitData:   make(map[string]*visitSync),
 		syncCh:      make(chan struct{}, 1), // buffered to represent needing to sync
@@ -82,28 +82,16 @@ func (c *CController) synchronize() {
 	defer c.mu.Unlock()
 
 	log.Println("synchronizing data")
-	var wg sync.WaitGroup
 	for _, visited := range c.visitData {
 		if visited.synced {
 			continue
 		}
-		wg.Add(1)
 		copied := *visited
-		go func() {
-			defer wg.Done()
-			res := c.syncIndividualData(copied)
-			if res {
-				c.mu.Lock()
-				visited.synced = true
-				c.mu.Unlock()
-			}
-		}()
+		res := c.syncIndividualData(copied)
+		if res {
+			visited.synced = true
+		}
 	}
-
-	c.mu.Unlock()
-	wg.Wait()
-	c.mu.Lock()
-
 	log.Println("data synced")
 }
 
@@ -148,11 +136,13 @@ func (c *CController) syncIndividualData(visited visitSync) bool {
 
 // this needs to be locked per site.
 func (c *CController) getSite(site uint32) (Site, error) {
-	c.mu.Lock()
 	if c.sites[site] == nil {
-		c.sites[site] = NewSiteFetcher(site, c.siteFactory)
+		var err error
+		c.sites[site], err = c.siteFactory(site)
+		if err != nil {
+			return nil, err
+		}
 	}
-	c.mu.Unlock()
 
-	return c.sites[site].GetSite()
+	return c.sites[site], nil
 }

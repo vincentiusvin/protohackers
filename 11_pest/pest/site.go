@@ -7,7 +7,6 @@ import (
 	"net"
 	"protohackers/11_pest/infra"
 	"protohackers/11_pest/types"
-	"sync"
 )
 
 type Site interface {
@@ -33,8 +32,7 @@ type CSite struct {
 
 	// need to ensure only one policy is active
 	// key is species name
-	// map[string]types.PolicyResult
-	policies sync.Map
+	policies map[string]types.PolicyResult
 }
 
 func NewSiteTCP(site uint32) (Site, error) {
@@ -49,6 +47,7 @@ func NewSite(site uint32, c io.ReadWriteCloser) Site {
 	s := &CSite{
 		c:                c,
 		site:             site,
+		policies:         make(map[string]types.PolicyResult),
 		helloChan:        make(chan types.Hello),
 		okChan:           make(chan types.OK),
 		targetPopChan:    make(chan types.TargetPopulations),
@@ -147,9 +146,9 @@ func (s *CSite) GetPops() (ret types.TargetPopulations, err error) {
 // update policy.
 // also ensures that there is only 1 policy in place
 func (s *CSite) UpdatePolicy(pol types.CreatePolicy) error {
-	prev, ok := s.policies.Load(pol.Species)
+	prev, ok := s.policies[pol.Species]
 	if ok {
-		prevCast := prev.(types.PolicyResult)
+		prevCast := prev
 		log.Printf("%v policy for %v detected: %v\n", s.site, pol.Species, prevCast.Policy)
 		_, err := s.deletePolicy(types.DeletePolicy(prevCast))
 		if err != nil {
@@ -163,7 +162,7 @@ func (s *CSite) UpdatePolicy(pol types.CreatePolicy) error {
 	if err != nil {
 		return err
 	}
-	s.policies.Store(pol.Species, ret)
+	s.policies[pol.Species] = ret
 	return nil
 }
 
