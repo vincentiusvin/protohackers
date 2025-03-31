@@ -154,15 +154,19 @@ func (s *CSite) UpdatePolicy(pol types.CreatePolicy) error {
 		if err != nil {
 			return err
 		}
+		delete(s.policies, pol.Species)
 	} else {
 		log.Printf("%v policy for %v not detected\n", s.site, pol.Species)
 	}
 
-	ret, err := s.createPolicy(pol)
-	if err != nil {
-		return err
+	if pol.Action != types.PolicyNothing {
+		ret, err := s.createPolicy(pol)
+		if err != nil {
+			return err
+		}
+		s.policies[pol.Species] = ret
 	}
-	s.policies[pol.Species] = ret
+
 	return nil
 }
 

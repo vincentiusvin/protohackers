@@ -31,6 +31,7 @@ type Policy uint8
 var (
 	PolicyCull     Policy = 0x90
 	PolicyConserve Policy = 0xa0
+	PolicyNothing  Policy = 0xFF
 )
 
 type CreatePolicy struct {

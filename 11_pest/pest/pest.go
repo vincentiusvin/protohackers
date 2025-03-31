@@ -125,22 +125,20 @@ func (c *CController) syncIndividualData(visited visitSync) bool {
 	}
 
 	var actionLog string
-	var changed bool
 
 	if visited.count < pop.Min {
 		pol.Action = types.PolicyConserve
 		actionLog = fmt.Sprintf("conserve (%v < %v)", visited.count, pop.Min)
-		changed = true
 	} else if visited.count > pop.Max {
 		pol.Action = types.PolicyCull
 		actionLog = fmt.Sprintf("cull (%v > %v)", visited.count, pop.Max)
-		changed = true
+	} else {
+		pol.Action = types.PolicyNothing
+		actionLog = fmt.Sprintf("nothing (%v <= %v <= %v)", pop.Min, visited.count, pop.Max)
 	}
 
-	if changed {
-		log.Printf("%v changing policy for %v to be %v\n", s.GetSite(), pol.Species, actionLog)
-		s.UpdatePolicy(pol)
-	}
+	log.Printf("%v changing policy for %v to be %v\n", s.GetSite(), pol.Species, actionLog)
+	s.UpdatePolicy(pol)
 
 	return true
 }

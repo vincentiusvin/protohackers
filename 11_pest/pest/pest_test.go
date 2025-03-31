@@ -25,6 +25,10 @@ func TestSiteVisit(t *testing.T) {
 			inCount: 5,
 			action:  types.PolicyConserve,
 		},
+		{
+			inCount: 15,
+			action:  types.PolicyNothing,
+		},
 	}
 
 	for _, cs := range cases {
@@ -69,7 +73,7 @@ func TestConccurentCreation(t *testing.T) {
 	var sitenum uint32 = 12345
 	var called atomic.Int32
 	factory := func(site uint32) (pest.Site, error) {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 		called.Add(1)
 		return newMockSite(sitenum, 0), nil
 	}
@@ -104,7 +108,7 @@ func TestConccurentCreation(t *testing.T) {
 		}
 	}
 
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(250 * time.Millisecond)
 	log.Println(called.Load())
 	if called.Load() != 1 {
 		t.Fatal("expected factory function to be called once")
