@@ -59,6 +59,7 @@ func (c *CController) AddSiteVisit(sv types.SiteVisit) error {
 			species: svEntry.Species,
 			site:    sv.Site,
 			count:   svEntry.Count,
+			synced:  false,
 		}
 		c.visitData[vs.hash()] = &vs
 	}
@@ -123,11 +124,21 @@ func (c *CController) syncIndividualData(visited visitSync) bool {
 		Species: visited.species,
 	}
 
+	var actionLog string
+	var changed bool
+
 	if visited.count < pop.Min {
 		pol.Action = types.PolicyConserve
-		s.UpdatePolicy(pol)
+		actionLog = fmt.Sprintf("conserve (%v < %v)", visited.count, pop.Min)
+		changed = true
 	} else if visited.count > pop.Max {
 		pol.Action = types.PolicyCull
+		actionLog = fmt.Sprintf("cull (%v > %v)", visited.count, pop.Max)
+		changed = true
+	}
+
+	if changed {
+		log.Printf("%v changing policy for %v to be %v\n", s.GetSite(), pol.Species, actionLog)
 		s.UpdatePolicy(pol)
 	}
 

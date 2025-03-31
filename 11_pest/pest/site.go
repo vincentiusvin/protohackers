@@ -149,8 +149,8 @@ func (s *CSite) UpdatePolicy(pol types.CreatePolicy) error {
 	prev, ok := s.policies[pol.Species]
 	if ok {
 		prevCast := prev
-		log.Printf("%v policy for %v detected: %v\n", s.site, pol.Species, prevCast.Policy)
-		_, err := s.deletePolicy(types.DeletePolicy(prevCast))
+		log.Printf("%v policy for %v detected (%v)\n", s.site, pol.Species, prevCast.Policy)
+		_, err := s.deletePolicy(types.DeletePolicy(prevCast), pol.Species)
 		if err != nil {
 			return err
 		}
@@ -186,7 +186,7 @@ func (s *CSite) createPolicy(pol types.CreatePolicy) (ret types.PolicyResult, er
 	return
 }
 
-func (s *CSite) deletePolicy(pol types.DeletePolicy) (ret types.OK, err error) {
+func (s *CSite) deletePolicy(pol types.DeletePolicy, species string) (ret types.OK, err error) {
 	polB := infra.Encode(pol)
 	_, err = s.c.Write(polB)
 	if err != nil {
@@ -194,7 +194,7 @@ func (s *CSite) deletePolicy(pol types.DeletePolicy) (ret types.OK, err error) {
 	}
 
 	ret = <-s.okChan
-	log.Printf("%v policy %v deleted\n", s.site, pol.Policy)
+	log.Printf("%v policy for %v (%v) deleted\n", s.site, species, pol.Policy)
 	return
 }
 
