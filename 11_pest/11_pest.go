@@ -87,6 +87,9 @@ func processIncoming(c net.Conn) (helloChan chan types.Hello, visitChan chan typ
 			for {
 				res := infra.Parse(curr)
 				if !res.Ok {
+					if len(curr) != 0 {
+						log.Printf("HELP: %v\n", curr)
+					}
 					break
 				}
 

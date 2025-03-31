@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"protohackers/11_pest/infra"
 	"protohackers/11_pest/types"
 )
@@ -33,14 +32,6 @@ type CSite struct {
 	// need to ensure only one policy is active
 	// key is species name
 	policies map[string]types.PolicyResult
-}
-
-func NewSiteTCP(site uint32) (Site, error) {
-	conn, err := net.Dial("tcp", "pestcontrol.protohackers.com:20547")
-	if err != nil {
-		return nil, err
-	}
-	return NewSite(site, conn), nil
 }
 
 func NewSite(site uint32, c io.ReadWriteCloser) Site {

@@ -23,20 +23,16 @@ type CController struct {
 	mu          sync.Mutex
 	sites       map[uint32]Site
 	siteFactory SiteFactory
-
-	// based on hash() of visitSync
-	visitDataQueue map[string][]*VisitData
 }
 
 func NewControllerTCP() Controller {
-	return NewController(NewSiteTCP)
+	return NewController(NewBufferedSiteTCP)
 }
 
 func NewController(siteFactory SiteFactory) Controller {
 	c := &CController{
-		sites:          make(map[uint32]Site),
-		siteFactory:    siteFactory,
-		visitDataQueue: make(map[string][]*VisitData),
+		sites:       make(map[uint32]Site),
+		siteFactory: siteFactory,
 	}
 	return c
 }
