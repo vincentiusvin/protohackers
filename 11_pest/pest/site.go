@@ -1,7 +1,6 @@
 package pest
 
 import (
-	"errors"
 	"io"
 	"log"
 	"protohackers/11_pest/infra"
@@ -47,21 +46,51 @@ func NewSite(site uint32, c io.ReadWriteCloser) (Site, error) {
 		policies:         make(map[string]types.PolicyResult),
 	}
 
-	go s.processIncoming()
-	err := s.handshake()
+	err := s.run()
 	if err != nil {
-		if errors.Is(err, ErrInvalidHandshake) {
-			log.Println("sent error")
-			errorB := infra.Encode(types.Error{
-				Message: err.Error(),
-			})
-			c.Write(errorB)
-		}
+		s.sendError(err)
 		return nil, err
 	}
-	log.Printf("%v setup finished\n", s.site)
 
 	return s, nil
+}
+
+func (s *CSite) run() error {
+	go s.processIncoming()
+
+	err := s.runHandshake()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *CSite) runHandshake() error {
+	helloB := infra.Encode(types.Hello{
+		Protocol: "pestcontrol",
+		Version:  1,
+	})
+
+	_, err := s.c.Write(helloB)
+	if err != nil {
+		return err
+	}
+
+	select {
+	case helloReply := <-s.helloChan:
+		if helloReply.Protocol != "pestcontrol" || helloReply.Version != 1 {
+			return ErrInvalidHandshake
+		}
+	case <-s.okChan:
+		return ErrInvalidHandshake
+	case <-s.policyResultChan:
+		return ErrInvalidHandshake
+	case <-s.targetPopChan:
+		return ErrInvalidHandshake
+	}
+
+	return nil
 }
 
 func (s *CSite) GetSite() uint32 {
@@ -99,43 +128,13 @@ func (s *CSite) processIncoming() {
 			case types.PolicyResult:
 				s.policyResultChan <- v
 			default:
-				s.close()
+				s.sendError(err)
+				return
 			}
 
 			curr = res.Next
 		}
 	}
-}
-
-func (s *CSite) handshake() error {
-	helloB := infra.Encode(types.Hello{
-		Protocol: "pestcontrol",
-		Version:  1,
-	})
-
-	_, err := s.c.Write(helloB)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("%v sent hello\n", s.site)
-
-	select {
-	case helloReply := <-s.helloChan:
-		if helloReply.Protocol != "pestcontrol" || helloReply.Version != 1 {
-			return ErrInvalidHandshake
-		}
-	case <-s.okChan:
-		return ErrInvalidHandshake
-	case <-s.policyResultChan:
-		return ErrInvalidHandshake
-	case <-s.targetPopChan:
-		return ErrInvalidHandshake
-	}
-
-	log.Printf("%v got hello\n", s.site)
-
-	return nil
 }
 
 func (s *CSite) GetPops() (ret types.TargetPopulations, err error) {
@@ -229,4 +228,11 @@ func (s *CSite) close() {
 	close(s.okChan)
 	close(s.targetPopChan)
 	close(s.policyResultChan)
+}
+
+func (c *CSite) sendError(err error) {
+	errorB := infra.Encode(types.Error{
+		Message: err.Error(),
+	})
+	c.c.Write(errorB)
 }
