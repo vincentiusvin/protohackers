@@ -36,7 +36,7 @@ var helloCases = []parseCase{
 			80, 0, 0, 0, 25, 0, 0, 0, 111, 112, 101, 115, 116, 99, 111, 110, 116, 114, 111, 108, 0, 0, 0, 1, 106,
 		},
 		expVal: nil,
-		expErr: nil,
+		expErr: infra.ErrTooLong,
 	},
 }
 
@@ -205,7 +205,7 @@ var siteVisitCases = []parseCase{
 			0, 0, 0, 102, 0, 0, 0, 15, 108, 111, 110, 103, 45, 116, 97, 105, 108, 101, 100, 32, 114, 97, 116, 0, 0, 0, 50, 0, 0, 0, 15, 98, 105, 103, 45, 119, 105, 110, 103, 101, 100, 32, 98, 105, 114, 100, 0, 0, 0, 3, 245,
 		},
 		expVal: nil,
-		expErr: nil,
+		expErr: infra.ErrTooLong,
 	},
 }
 
@@ -277,6 +277,9 @@ func TestParser(t *testing.T) {
 
 func TestEncoder(t *testing.T) {
 	runEncodeCase := func(t *testing.T, c parseCase) {
+		if c.expErr != nil {
+			return
+		}
 		res := infra.Encode(c.expVal)
 		if !reflect.DeepEqual(res, c.inB) {
 			t.Fatalf("wrong parse result. exp %v got %v", c.inB, res)

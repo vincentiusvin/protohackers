@@ -236,7 +236,7 @@ func (s *CSite) close() {
 }
 
 func (c *CSite) sendError(err error) {
-	log.Println("sent error auth")
+	log.Printf("sent error auth %v\n", err)
 	errorB := infra.Encode(types.Error{
 		Message: err.Error(),
 	})

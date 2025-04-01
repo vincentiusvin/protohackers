@@ -60,29 +60,35 @@ func (s *Session) run() {
 
 	go s.runParser()
 
-	s.runHandshake()
+	err := s.runHandshake()
+	if err != nil {
+		return
+	}
 	s.runVisit()
 }
 
-func (s *Session) runHandshake() {
+func (s *Session) runHandshake() error {
 	helloB := infra.Encode(types.Hello{
 		Protocol: "pestcontrol",
 		Version:  1,
 	})
 	_, err := s.c.Write(helloB)
 	if err != nil {
-		return
+		return err
 	}
 
 	select {
 	case helloReply := <-s.helloChan:
 		if helloReply.Protocol != "pestcontrol" || helloReply.Version != 1 {
 			s.sendError(pest.ErrInvalidHandshake)
-			return
+			return pest.ErrInvalidHandshake
 		}
 	case <-s.visitChan:
 		s.sendError(pest.ErrInvalidHandshake)
+		return pest.ErrInvalidHandshake
 	}
+
+	return nil
 }
 
 func (s *Session) runVisit() {
@@ -101,6 +107,7 @@ func (s *Session) runVisit() {
 			}
 		case <-s.helloChan:
 			s.sendError(pest.ErrInvalidSiteVisit)
+			return
 		}
 	}
 }
@@ -116,6 +123,7 @@ func (s *Session) runParser() {
 		}
 
 		for {
+			log.Printf("[%v] curr: %v", s.c.RemoteAddr(), curr)
 			res := infra.Parse(curr)
 			if res.Error != nil {
 				if errors.Is(res.Error, infra.ErrNotEnough) {
@@ -141,9 +149,10 @@ func (s *Session) runParser() {
 }
 
 func (s *Session) sendError(err error) {
-	log.Println("sent error client")
+	log.Printf("[%v] sent error client %v\n", s.c.RemoteAddr(), err)
 	errorB := infra.Encode(types.Error{
 		Message: err.Error(),
 	})
 	s.c.Write(errorB)
+	s.c.Close()
 }

@@ -12,6 +12,7 @@ var (
 	ErrInvalidPrefix   = fmt.Errorf("invalid prefix")
 	ErrInvalidData     = fmt.Errorf("invalid data")
 	ErrNotEnough       = fmt.Errorf("not enough data")
+	ErrTooLong         = fmt.Errorf("length too long")
 )
 
 type ParseFunc[T any] func(b []byte) ParseResult[T]
@@ -428,4 +429,20 @@ func parseString(b []byte) (ret ParseResult[string]) {
 	ret.Next = b[lenVal:]
 
 	return ret
+}
+
+func parseStringLimit(b []byte, limit int) (ret ParseResult[string]) {
+	lenParse := parseUint32(b)
+	if lenParse.Error != nil {
+		ret.Error = ErrNotEnough
+		return
+	}
+
+	lenVal := int(lenParse.Value)
+	if lenVal > limit {
+		ret.Error = ErrTooLong
+		return
+	}
+
+	return parseString(b)
 }
