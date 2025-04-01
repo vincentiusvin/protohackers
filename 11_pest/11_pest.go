@@ -141,7 +141,7 @@ func (s *Session) runParser() {
 }
 
 func (s *Session) sendError(err error) {
-	log.Println("sent error")
+	log.Println("sent error client")
 	errorB := infra.Encode(types.Error{
 		Message: err.Error(),
 	})
