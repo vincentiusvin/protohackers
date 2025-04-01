@@ -215,8 +215,10 @@ func TestParser(t *testing.T) {
 		if c.expErr != res.Error {
 			t.Fatalf("parse status wrong. exp %v got %v", c.expErr, res.Error)
 		}
-		if !reflect.DeepEqual(res.Value, c.expVal) {
-			t.Fatalf("wrong parse result. exp %v got %v", c.expVal, res.Value)
+		if c.expErr == nil {
+			if !reflect.DeepEqual(res.Value, c.expVal) {
+				t.Fatalf("wrong parse result. exp %v got %v", c.expVal, res.Value)
+			}
 		}
 	}
 

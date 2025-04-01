@@ -87,7 +87,7 @@ func Parse(b []byte) (ret ParseResult[any]) {
 
 func parseHello(b []byte) ParseResult[types.Hello] {
 	return envelope(func(b []byte) (ret ParseResult[types.Hello]) {
-		protocol := parseString(b)
+		protocol := parseStringLimit(b, 11)
 		if protocol.Error != nil {
 			ret.Error = protocol.Error
 			return ret
@@ -277,13 +277,25 @@ func parseSiteVisitEntry(b []byte) (ret ParseResult[types.SiteVisitEntry]) {
 }
 
 func parseSiteVisit(b []byte) ParseResult[types.SiteVisit] {
+	msgLen := parseUint32(b[1:])
+	if msgLen.Error != nil {
+		return ParseResult[types.SiteVisit]{
+			Error: msgLen.Error,
+		}
+	}
+
 	return envelope(func(b []byte) (ret ParseResult[types.SiteVisit]) {
 		site := parseUint32(b)
 		if site.Error != nil {
 			ret.Error = site.Error
 			return ret
 		}
-		pops := parseArray(parseSiteVisitEntry)(site.Next)
+
+		// total = prefix (1) + msgLen(4) + site(4) + arr(x) + checksum(1)
+		// arr = total - 10
+		limit := (int(msgLen.Value) - 10) / 1
+
+		pops := parseArrayLimit(parseSiteVisitEntry, limit)(site.Next)
 		if pops.Error != nil {
 			ret.Error = pops.Error
 			return ret
@@ -375,6 +387,42 @@ func parseArray[T any](fn ParseFunc[T]) ParseFunc[[]T] {
 			}
 			acc[i] = curr.Value
 			b = curr.Next
+		}
+
+		ret.Value = acc
+		ret.Next = b
+
+		return ret
+	}
+}
+
+func parseArrayLimit[T any](fn ParseFunc[T], byteLimit int) ParseFunc[[]T] {
+	return func(b []byte) (ret ParseResult[[]T]) {
+		init := b
+		lenParse := parseUint32(b)
+		if lenParse.Error != nil {
+			ret.Error = lenParse.Error
+			return ret
+		}
+
+		b = lenParse.Next
+		lenVal := int(lenParse.Value)
+
+		acc := make([]T, lenVal)
+		for i := 0; i < lenVal; i++ {
+			curr := fn(b)
+			if curr.Error != nil {
+				ret.Error = curr.Error
+				return ret
+			}
+			acc[i] = curr.Value
+			b = curr.Next
+
+			diff := len(init) - len(b)
+			if diff >= byteLimit && (i+1 < lenVal) {
+				ret.Error = ErrTooLong
+				return
+			}
 		}
 
 		ret.Value = acc
