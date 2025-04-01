@@ -10,7 +10,7 @@ import (
 type parseCase struct {
 	inB    []byte
 	expVal any
-	expOk  bool
+	expErr error
 }
 
 var helloCases = []parseCase{
@@ -29,7 +29,14 @@ var helloCases = []parseCase{
 			Protocol: "pestcontrol",
 			Version:  1,
 		},
-		expOk: true,
+		expErr: nil,
+	},
+	{
+		inB: []byte{
+			80, 0, 0, 0, 25, 0, 0, 0, 111, 112, 101, 115, 116, 99, 111, 110, 116, 114, 111, 108, 0, 0, 0, 1, 106,
+		},
+		expVal: nil,
+		expErr: nil,
 	},
 }
 
@@ -45,7 +52,7 @@ var errorCases = []parseCase{
 		expVal: types.Error{
 			Message: "bad",
 		},
-		expOk: true,
+		expErr: nil,
 	},
 }
 
@@ -57,7 +64,7 @@ var okCases = []parseCase{
 			0xa8,
 		},
 		expVal: types.OK{},
-		expOk:  true,
+		expErr: nil,
 	},
 }
 
@@ -72,7 +79,7 @@ var dialAuthorityCases = []parseCase{
 		expVal: types.DialAuthority{
 			Site: 12345,
 		},
-		expOk: true,
+		expErr: nil,
 	},
 }
 
@@ -108,7 +115,7 @@ var targetPopCases = []parseCase{
 				},
 			},
 		},
-		expOk: true,
+		expErr: nil,
 	},
 }
 
@@ -126,7 +133,7 @@ var createPolicyCases = []parseCase{
 			Species: "dog",
 			Action:  types.PolicyConserve,
 		},
-		expOk: true,
+		expErr: nil,
 	},
 }
 
@@ -141,7 +148,7 @@ var deletePolicyCases = []parseCase{
 		expVal: types.DeletePolicy{
 			Policy: 123,
 		},
-		expOk: true,
+		expErr: nil,
 	},
 }
 
@@ -156,7 +163,7 @@ var policyResultCases = []parseCase{
 		expVal: types.PolicyResult{
 			Policy: 123,
 		},
-		expOk: true,
+		expErr: nil,
 	},
 }
 
@@ -188,16 +195,25 @@ var siteVisitCases = []parseCase{
 				},
 			},
 		},
-		expOk: true,
+		expErr: nil,
+	},
+	{
+		inB: []byte{
+			88,
+			0, 0, 0, 60,
+			0, 0, 48, 57,
+			0, 0, 0, 102, 0, 0, 0, 15, 108, 111, 110, 103, 45, 116, 97, 105, 108, 101, 100, 32, 114, 97, 116, 0, 0, 0, 50, 0, 0, 0, 15, 98, 105, 103, 45, 119, 105, 110, 103, 101, 100, 32, 98, 105, 114, 100, 0, 0, 0, 3, 245,
+		},
+		expVal: nil,
+		expErr: nil,
 	},
 }
 
 func TestParser(t *testing.T) {
 	runParseCase := func(t *testing.T, c parseCase) {
 		res := infra.Parse(c.inB)
-		ok := res.Error == nil
-		if c.expOk != ok {
-			t.Fatalf("parse status wrong. exp %v got %v", c.expOk, res.Error)
+		if c.expErr != res.Error {
+			t.Fatalf("parse status wrong. exp %v got %v", c.expErr, res.Error)
 		}
 		if !reflect.DeepEqual(res.Value, c.expVal) {
 			t.Fatalf("wrong parse result. exp %v got %v", c.expVal, res.Value)
