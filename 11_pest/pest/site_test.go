@@ -232,7 +232,7 @@ func createRW() (rw io.ReadWriteCloser, in chan any, out chan any) {
 
 			for {
 				res := infra.Parse(curr)
-				if !res.Ok {
+				if res.Error != nil {
 					break
 				}
 				out <- res.Value

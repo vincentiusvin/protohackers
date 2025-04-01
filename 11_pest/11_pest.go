@@ -117,8 +117,12 @@ func (s *Session) runParser() {
 
 		for {
 			res := infra.Parse(curr)
-			if !res.Ok {
-				break
+			if res.Error != nil {
+				if errors.Is(res.Error, infra.ErrNotEnough) {
+					break
+				}
+				s.sendError(res.Error)
+				return
 			}
 
 			switch v := res.Value.(type) {

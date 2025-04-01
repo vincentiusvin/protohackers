@@ -1,6 +1,7 @@
 package pest
 
 import (
+	"errors"
 	"io"
 	"log"
 	"protohackers/11_pest/infra"
@@ -114,8 +115,12 @@ func (s *CSite) processIncoming() {
 
 		for {
 			res := infra.Parse(curr)
-			if !res.Ok {
-				break
+			if res.Error != nil {
+				if errors.Is(res.Error, infra.ErrNotEnough) {
+					break
+				}
+				s.sendError(res.Error)
+				return
 			}
 
 			switch v := res.Value.(type) {
@@ -128,7 +133,7 @@ func (s *CSite) processIncoming() {
 			case types.PolicyResult:
 				s.policyResultChan <- v
 			default:
-				s.sendError(err)
+				s.sendError(ErrInvalidData)
 				return
 			}
 

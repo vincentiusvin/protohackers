@@ -195,8 +195,9 @@ var siteVisitCases = []parseCase{
 func TestParser(t *testing.T) {
 	runParseCase := func(t *testing.T, c parseCase) {
 		res := infra.Parse(c.inB)
-		if c.expOk != res.Ok {
-			t.Fatalf("parse status wrong. exp %v got %v", c.expOk, res.Ok)
+		ok := res.Error == nil
+		if c.expOk != ok {
+			t.Fatalf("parse status wrong. exp %v got %v", c.expOk, res.Error)
 		}
 		if !reflect.DeepEqual(res.Value, c.expVal) {
 			t.Fatalf("wrong parse result. exp %v got %v", c.expVal, res.Value)

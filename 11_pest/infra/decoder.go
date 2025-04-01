@@ -2,71 +2,81 @@ package infra
 
 import (
 	"encoding/binary"
+	"fmt"
 	"protohackers/11_pest/types"
+)
+
+var (
+	ErrInvalidChecksum = fmt.Errorf("invalid checksum")
+	ErrInvalidLength   = fmt.Errorf("invalid message length")
+	ErrInvalidPrefix   = fmt.Errorf("invalid prefix")
+	ErrInvalidData     = fmt.Errorf("invalid data")
+	ErrNotEnough       = fmt.Errorf("not enough data")
 )
 
 type ParseFunc[T any] func(b []byte) ParseResult[T]
 type ParseResult[T any] struct {
 	Value T
 	Next  []byte
-	Ok    bool
+	Error error
 }
 
 func Parse(b []byte) (ret ParseResult[any]) {
 	// parse prefix first, but do not advance the byte stream.
 	prefix := parseUint8(b)
-	if !prefix.Ok {
+	if prefix.Error != nil {
+		ret.Error = ErrNotEnough
 		return ret
 	}
 
 	switch prefix.Value {
 	case 0x50:
 		res := parseHello(b)
-		ret.Ok = res.Ok
+		ret.Error = res.Error
 		ret.Next = res.Next
 		ret.Value = res.Value
 	case 0x51:
 		res := parseError(b)
-		ret.Ok = res.Ok
+		ret.Error = res.Error
 		ret.Next = res.Next
 		ret.Value = res.Value
 	case 0x52:
 		res := parseOk(b)
-		ret.Ok = res.Ok
+		ret.Error = res.Error
 		ret.Next = res.Next
 		ret.Value = res.Value
 	case 0x53:
 		res := parseDialAuthority(b)
-		ret.Ok = res.Ok
+		ret.Error = res.Error
 		ret.Next = res.Next
 		ret.Value = res.Value
 	case 0x54:
 		res := parseTargetPopulations(b)
-		ret.Ok = res.Ok
+		ret.Error = res.Error
 		ret.Next = res.Next
 		ret.Value = res.Value
 	case 0x55:
 		res := parseCreatePolicy(b)
-		ret.Ok = res.Ok
+		ret.Error = res.Error
 		ret.Next = res.Next
 		ret.Value = res.Value
 	case 0x56:
 		res := parseDeletePolicy(b)
-		ret.Ok = res.Ok
+		ret.Error = res.Error
 		ret.Next = res.Next
 		ret.Value = res.Value
 	case 0x57:
 		res := parsePolicyResult(b)
-		ret.Ok = res.Ok
+		ret.Error = res.Error
 		ret.Next = res.Next
 		ret.Value = res.Value
 	case 0x58:
 		res := parseSiteVisit(b)
-		ret.Ok = res.Ok
+		ret.Error = res.Error
 		ret.Next = res.Next
 		ret.Value = res.Value
 	default:
-		ret.Ok = true
+		ret.Error = ErrInvalidPrefix
 		ret.Value = prefix.Value
 		ret.Next = prefix.Next
 	}
@@ -77,15 +87,16 @@ func Parse(b []byte) (ret ParseResult[any]) {
 func parseHello(b []byte) ParseResult[types.Hello] {
 	return envelope(func(b []byte) (ret ParseResult[types.Hello]) {
 		protocol := parseString(b)
-		if !protocol.Ok {
+		if protocol.Error != nil {
+			ret.Error = protocol.Error
 			return ret
 		}
 		version := parseUint32(protocol.Next)
-		if !version.Ok {
+		if version.Error != nil {
+			ret.Error = version.Error
 			return ret
 		}
 
-		ret.Ok = true
 		ret.Value = types.Hello{
 			Protocol: protocol.Value,
 			Version:  version.Value,
@@ -98,10 +109,10 @@ func parseHello(b []byte) ParseResult[types.Hello] {
 func parseError(b []byte) ParseResult[types.Error] {
 	return envelope(func(b []byte) (ret ParseResult[types.Error]) {
 		message := parseString(b)
-		if !message.Ok {
+		if message.Error != nil {
+			ret.Error = message.Error
 			return ret
 		}
-		ret.Ok = true
 		ret.Value = types.Error{
 			Message: message.Value,
 		}
@@ -112,7 +123,6 @@ func parseError(b []byte) ParseResult[types.Error] {
 
 func parseOk(b []byte) ParseResult[types.OK] {
 	return envelope(func(b []byte) (ret ParseResult[types.OK]) {
-		ret.Ok = true
 		ret.Next = b
 		return ret
 	}, 0x52)(b)
@@ -121,10 +131,11 @@ func parseOk(b []byte) ParseResult[types.OK] {
 func parseDialAuthority(b []byte) ParseResult[types.DialAuthority] {
 	return envelope(func(b []byte) (ret ParseResult[types.DialAuthority]) {
 		site := parseUint32(b)
-		if !site.Ok {
+		if site.Error != nil {
+			ret.Error = site.Error
 			return ret
 		}
-		ret.Ok = true
+
 		ret.Value = types.DialAuthority{
 			Site: site.Value,
 		}
@@ -135,21 +146,23 @@ func parseDialAuthority(b []byte) ParseResult[types.DialAuthority] {
 
 func parseTargetPopulationsEntry(b []byte) (ret ParseResult[types.TargetPopulationsEntry]) {
 	species := parseString(b)
-	if !species.Ok {
+	if species.Error != nil {
+		ret.Error = species.Error
 		return ret
 	}
 
 	min := parseUint32(species.Next)
-	if !min.Ok {
+	if min.Error != nil {
+		ret.Error = min.Error
 		return ret
 	}
 
 	max := parseUint32(min.Next)
-	if !max.Ok {
+	if max.Error != nil {
+		ret.Error = min.Error
 		return ret
 	}
 
-	ret.Ok = true
 	ret.Value = types.TargetPopulationsEntry{
 		Species: species.Value,
 		Min:     min.Value,
@@ -162,15 +175,16 @@ func parseTargetPopulationsEntry(b []byte) (ret ParseResult[types.TargetPopulati
 func parseTargetPopulations(b []byte) ParseResult[types.TargetPopulations] {
 	return envelope(func(b []byte) (ret ParseResult[types.TargetPopulations]) {
 		site := parseUint32(b)
-		if !site.Ok {
+		if site.Error != nil {
+			ret.Error = site.Error
 			return ret
 		}
 		pops := parseArray(parseTargetPopulationsEntry)(site.Next)
-		if !pops.Ok {
+		if pops.Error != nil {
+			ret.Error = site.Error
 			return ret
 		}
 
-		ret.Ok = true
 		ret.Value = types.TargetPopulations{
 			Site:        site.Value,
 			Populations: pops.Value,
@@ -183,20 +197,22 @@ func parseTargetPopulations(b []byte) ParseResult[types.TargetPopulations] {
 func parseCreatePolicy(b []byte) ParseResult[types.CreatePolicy] {
 	return envelope(func(b []byte) (ret ParseResult[types.CreatePolicy]) {
 		species := parseString(b)
-		if !species.Ok {
+		if species.Error != nil {
+			ret.Error = species.Error
 			return ret
 		}
 		action := parseUint8(species.Next)
-		if !action.Ok {
+		if action.Error != nil {
+			ret.Error = action.Error
 			return ret
 		}
 
 		actionValue := types.Policy(action.Value)
 		if actionValue != types.PolicyCull && actionValue != types.PolicyConserve {
+			ret.Error = ErrInvalidData
 			return ret
 		}
 
-		ret.Ok = true
 		ret.Value = types.CreatePolicy{
 			Species: species.Value,
 			Action:  actionValue,
@@ -209,11 +225,11 @@ func parseCreatePolicy(b []byte) ParseResult[types.CreatePolicy] {
 func parseDeletePolicy(b []byte) ParseResult[types.DeletePolicy] {
 	return envelope(func(b []byte) (ret ParseResult[types.DeletePolicy]) {
 		policy := parseUint32(b)
-		if !policy.Ok {
+		if policy.Error != nil {
+			ret.Error = policy.Error
 			return ret
 		}
 
-		ret.Ok = true
 		ret.Value = types.DeletePolicy{
 			Policy: policy.Value,
 		}
@@ -225,11 +241,11 @@ func parseDeletePolicy(b []byte) ParseResult[types.DeletePolicy] {
 func parsePolicyResult(b []byte) ParseResult[types.PolicyResult] {
 	return envelope(func(b []byte) (ret ParseResult[types.PolicyResult]) {
 		policy := parseUint32(b)
-		if !policy.Ok {
+		if policy.Error != nil {
+			ret.Error = policy.Error
 			return ret
 		}
 
-		ret.Ok = true
 		ret.Value = types.PolicyResult{
 			Policy: policy.Value,
 		}
@@ -240,16 +256,17 @@ func parsePolicyResult(b []byte) ParseResult[types.PolicyResult] {
 
 func parseSiteVisitEntry(b []byte) (ret ParseResult[types.SiteVisitEntry]) {
 	species := parseString(b)
-	if !species.Ok {
+	if species.Error != nil {
+		ret.Error = species.Error
 		return ret
 	}
 
 	count := parseUint32(species.Next)
-	if !count.Ok {
+	if count.Error != nil {
+		ret.Error = count.Error
 		return ret
 	}
 
-	ret.Ok = true
 	ret.Value = types.SiteVisitEntry{
 		Species: species.Value,
 		Count:   count.Value,
@@ -261,15 +278,16 @@ func parseSiteVisitEntry(b []byte) (ret ParseResult[types.SiteVisitEntry]) {
 func parseSiteVisit(b []byte) ParseResult[types.SiteVisit] {
 	return envelope(func(b []byte) (ret ParseResult[types.SiteVisit]) {
 		site := parseUint32(b)
-		if !site.Ok {
+		if site.Error != nil {
+			ret.Error = site.Error
 			return ret
 		}
 		pops := parseArray(parseSiteVisitEntry)(site.Next)
-		if !pops.Ok {
+		if pops.Error != nil {
+			ret.Error = pops.Error
 			return ret
 		}
 
-		ret.Ok = true
 		ret.Value = types.SiteVisit{
 			Site:        site.Value,
 			Populations: pops.Value,
@@ -286,25 +304,37 @@ func parseSiteVisit(b []byte) ParseResult[types.SiteVisit] {
 func envelope[T any](fn ParseFunc[T], expectedPrefix uint8) ParseFunc[T] {
 	return func(b []byte) (ret ParseResult[T]) {
 		prefix := parseUint8(b)
-		if !prefix.Ok || prefix.Value != expectedPrefix {
+		if prefix.Error != nil {
+			ret.Error = prefix.Error
 			return ret
 		}
+
+		if prefix.Value != expectedPrefix {
+			ret.Error = ErrInvalidData
+			return ret
+		}
+
 		msgLen := parseUint32(prefix.Next)
-		if !msgLen.Ok {
+		if msgLen.Error != nil {
+			ret.Error = msgLen.Error
 			return ret
 		}
 		val := fn(msgLen.Next)
-		if !val.Ok {
+		if val.Error != nil {
+			ret.Error = val.Error
 			return ret
 		}
+
 		checksum := parseUint8(val.Next)
-		if !checksum.Ok {
+		if checksum.Error != nil {
+			ret.Error = checksum.Error
 			return ret
 		}
 
 		expectedMsgLen := int(msgLen.Value)
 		actualMsgLen := len(b) - len(checksum.Next)
 		if expectedMsgLen != actualMsgLen {
+			ret.Error = ErrInvalidLength
 			return ret
 		}
 
@@ -313,10 +343,10 @@ func envelope[T any](fn ParseFunc[T], expectedPrefix uint8) ParseFunc[T] {
 			sum += b[i]
 		}
 		if sum != 0 {
+			ret.Error = ErrInvalidChecksum
 			return ret
 		}
 
-		ret.Ok = true
 		ret.Value = val.Value
 		ret.Next = checksum.Next
 		return ret
@@ -327,7 +357,8 @@ func envelope[T any](fn ParseFunc[T], expectedPrefix uint8) ParseFunc[T] {
 func parseArray[T any](fn ParseFunc[T]) ParseFunc[[]T] {
 	return func(b []byte) (ret ParseResult[[]T]) {
 		lenParse := parseUint32(b)
-		if !lenParse.Ok {
+		if lenParse.Error != nil {
+			ret.Error = lenParse.Error
 			return ret
 		}
 
@@ -337,14 +368,14 @@ func parseArray[T any](fn ParseFunc[T]) ParseFunc[[]T] {
 		acc := make([]T, lenVal)
 		for i := 0; i < lenVal; i++ {
 			curr := fn(b)
-			if !curr.Ok {
+			if curr.Error != nil {
+				ret.Error = curr.Error
 				return ret
 			}
 			acc[i] = curr.Value
 			b = curr.Next
 		}
 
-		ret.Ok = true
 		ret.Value = acc
 		ret.Next = b
 
@@ -354,9 +385,10 @@ func parseArray[T any](fn ParseFunc[T]) ParseFunc[[]T] {
 
 func parseUint8(b []byte) (ret ParseResult[uint8]) {
 	if len(b) < 1 {
+		ret.Error = ErrNotEnough
 		return
 	}
-	ret.Ok = true
+
 	ret.Value = uint8(b[0])
 	ret.Next = b[1:]
 	return ret
@@ -364,9 +396,10 @@ func parseUint8(b []byte) (ret ParseResult[uint8]) {
 
 func parseUint32(b []byte) (ret ParseResult[uint32]) {
 	if len(b) < 4 {
+		ret.Error = ErrNotEnough
 		return
 	}
-	ret.Ok = true
+
 	ret.Value = binary.BigEndian.Uint32(b)
 	ret.Next = b[4:]
 	return ret
@@ -376,7 +409,8 @@ func parseUint32(b []byte) (ret ParseResult[uint32]) {
 // Returns number of bytes consumed and the final string
 func parseString(b []byte) (ret ParseResult[string]) {
 	lenParse := parseUint32(b)
-	if !lenParse.Ok {
+	if lenParse.Error != nil {
+		ret.Error = ErrNotEnough
 		return
 	}
 
@@ -384,12 +418,12 @@ func parseString(b []byte) (ret ParseResult[string]) {
 	lenVal := int(lenParse.Value)
 
 	if len(b) < lenVal {
+		ret.Error = ErrNotEnough
 		return ret
 	}
 
 	str := string(b[:lenVal])
 
-	ret.Ok = true
 	ret.Value = str
 	ret.Next = b[lenVal:]
 
