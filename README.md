@@ -13,7 +13,7 @@ Done:
 - [x] 8 - Insecure Sockets Layer
 - [x] 9 - Job Centre
 - [x] 10 - Voracious Code Storage
-- [ ] 11 - Pest Control
+- [x] 11 - Pest Control
 
 # Running
 
