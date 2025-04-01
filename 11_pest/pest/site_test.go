@@ -144,6 +144,33 @@ func TestDeletePolicy(t *testing.T) {
 	<-done
 }
 
+func TestError(t *testing.T) {
+	var in chan any
+	var out chan any
+
+	var rw io.ReadWriteCloser
+	rw, in, out = createRW()
+
+	sch := make(chan pest.Site)
+	go func() {
+		s, _ := pest.NewBufferedSite(12345, rw)
+		sch <- s
+	}()
+
+	<-out
+
+	in <- types.Hello{
+		Protocol: "pestcontrol",
+		Version:  2,
+	}
+
+	o := <-out
+	v, ok := o.(types.Error)
+	if !ok {
+		t.Fatalf("expected an error %v", v)
+	}
+}
+
 func fixture(site uint32) (s pest.Site, in chan any, out chan any, err error) {
 	var rw io.ReadWriteCloser
 	rw, in, out = createRW()
