@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	ErrInvalidSiteVisit = fmt.Errorf("invalid site visit. found conflicting keys.")
+	ErrInvalidSiteVisit = fmt.Errorf("invalid site visit. found conflicting keys")
+	ErrInvalidHandshake = fmt.Errorf("invalid handshake")
 )
 
 type Controller interface {
@@ -47,10 +48,7 @@ func (c *CController) AddSiteVisit(sv types.SiteVisit) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	site, err := c.getSite(sv.Site)
-	if err != nil {
-		return err
-	}
+	site := c.getSite(sv.Site)
 
 	pops, err := site.GetPops()
 	if err != nil {
@@ -116,14 +114,17 @@ func (c *CController) updatePolicy(visited VisitData, site Site) error {
 }
 
 // this needs to be locked per site.
-func (c *CController) getSite(site uint32) (Site, error) {
+func (c *CController) getSite(site uint32) Site {
 	if c.sites[site] == nil {
-		var err error
-		c.sites[site], err = c.siteFactory(site)
-		if err != nil {
-			return nil, err
+		for {
+			var err error
+			c.sites[site], err = c.siteFactory(site)
+			if err != nil {
+				continue
+			}
+			break
 		}
 	}
 
-	return c.sites[site], nil
+	return c.sites[site]
 }

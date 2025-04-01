@@ -18,18 +18,27 @@ func NewBufferedSiteTCP(site uint32) (Site, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewBufferedSite(site, conn), nil
+	s, err := NewBufferedSite(site, conn)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
 }
 
-func NewBufferedSite(site uint32, c io.ReadWriteCloser) Site {
+func NewBufferedSite(site uint32, c io.ReadWriteCloser) (Site, error) {
+	s, err := NewSite(site, c)
+	if err != nil {
+		return nil, err
+	}
+
 	ret := &BufferedSite{
-		site:  NewSite(site, c),
+		site:  s,
 		store: make(chan types.CreatePolicy, 100),
 	}
 
 	go ret.run()
 
-	return ret
+	return ret, nil
 }
 
 func (bs *BufferedSite) GetSite() uint32 {

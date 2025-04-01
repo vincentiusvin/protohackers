@@ -39,10 +39,25 @@ func handleConn(c net.Conn, pc pest.Controller) {
 
 	helloChan, visitChan := processIncoming(c)
 
-	helloReply := <-helloChan
-	if helloReply.Protocol != "pestcontrol" || helloReply.Version != 1 {
+	sendError := func(err error) {
+		log.Println("sent error")
+		errorB := infra.Encode(types.Error{
+			Message: err.Error(),
+		})
+		c.Write(errorB)
+	}
+
+	select {
+	case helloReply := <-helloChan:
+		if helloReply.Protocol != "pestcontrol" || helloReply.Version != 1 {
+			sendError(pest.ErrInvalidHandshake)
+			return
+		}
+	case <-visitChan:
+		sendError(pest.ErrInvalidHandshake)
 		return
 	}
+
 	log.Printf("[%v] got hello\n", addr)
 
 	helloB := infra.Encode(types.Hello{
@@ -68,11 +83,9 @@ func handleConn(c net.Conn, pc pest.Controller) {
 		if err != nil {
 			log.Printf("%v got err %v", addr, err)
 
-			if errors.Is(err, pest.ErrInvalidSiteVisit) {
-				errorB := infra.Encode(types.Error{
-					Message: err.Error(),
-				})
-				c.Write(errorB)
+			if errors.Is(err, pest.ErrInvalidSiteVisit) ||
+				errors.Is(err, pest.ErrInvalidHandshake) {
+				sendError(err)
 			}
 			break
 		}

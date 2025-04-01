@@ -1,7 +1,7 @@
 package pest
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"log"
 	"protohackers/11_pest/infra"
@@ -36,7 +36,7 @@ type CSite struct {
 	policies map[string]types.PolicyResult
 }
 
-func NewSite(site uint32, c io.ReadWriteCloser) Site {
+func NewSite(site uint32, c io.ReadWriteCloser) (Site, error) {
 	s := &CSite{
 		c:                c,
 		site:             site,
@@ -48,10 +48,20 @@ func NewSite(site uint32, c io.ReadWriteCloser) Site {
 	}
 
 	go s.processIncoming()
-	s.handshake()
+	err := s.handshake()
+	if err != nil {
+		if errors.Is(err, ErrInvalidHandshake) {
+			log.Println("sent error")
+			errorB := infra.Encode(types.Error{
+				Message: err.Error(),
+			})
+			c.Write(errorB)
+		}
+		return nil, err
+	}
 	log.Printf("%v setup finished\n", s.site)
 
-	return s
+	return s, nil
 }
 
 func (s *CSite) GetSite() uint32 {
@@ -88,6 +98,8 @@ func (s *CSite) processIncoming() {
 				s.targetPopChan <- v
 			case types.PolicyResult:
 				s.policyResultChan <- v
+			default:
+				s.close()
 			}
 
 			curr = res.Next
@@ -108,9 +120,17 @@ func (s *CSite) handshake() error {
 
 	log.Printf("%v sent hello\n", s.site)
 
-	helloReply := <-s.helloChan
-	if helloReply.Protocol != "pestcontrol" || helloReply.Version != 1 {
-		return fmt.Errorf("got invalid handshake reply %v", helloReply)
+	select {
+	case helloReply := <-s.helloChan:
+		if helloReply.Protocol != "pestcontrol" || helloReply.Version != 1 {
+			return ErrInvalidHandshake
+		}
+	case <-s.okChan:
+		return ErrInvalidHandshake
+	case <-s.policyResultChan:
+		return ErrInvalidHandshake
+	case <-s.targetPopChan:
+		return ErrInvalidHandshake
 	}
 
 	log.Printf("%v got hello\n", s.site)

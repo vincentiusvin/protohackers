@@ -150,7 +150,7 @@ func fixture(site uint32) (s pest.Site, in chan any, out chan any, err error) {
 
 	sch := make(chan pest.Site)
 	go func() {
-		s := pest.NewBufferedSite(site, rw)
+		s, _ := pest.NewBufferedSite(site, rw)
 		sch <- s
 	}()
 
