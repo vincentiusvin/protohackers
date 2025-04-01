@@ -65,6 +65,10 @@ func Parse(b []byte) (ret ParseResult[any]) {
 		ret.Ok = res.Ok
 		ret.Next = res.Next
 		ret.Value = res.Value
+	default:
+		ret.Ok = true
+		ret.Value = prefix.Value
+		ret.Next = prefix.Next
 	}
 
 	return ret

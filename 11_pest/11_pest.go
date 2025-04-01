@@ -27,109 +27,119 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		go handleConn(c, pc)
+		s := NewSession(c, pc)
+		go s.run()
 	}
 }
 
-func handleConn(c net.Conn, pc pest.Controller) {
-	defer c.Close()
+type Session struct {
+	c  net.Conn
+	pc pest.Controller
 
-	addr := c.RemoteAddr().String()
+	// client->us
+	helloChan chan types.Hello
+	visitChan chan types.SiteVisit
+}
+
+func NewSession(c net.Conn, pc pest.Controller) *Session {
+	s := &Session{
+		c:         c,
+		pc:        pc,
+		helloChan: make(chan types.Hello),
+		visitChan: make(chan types.SiteVisit),
+	}
+
+	return s
+}
+
+func (s *Session) run() {
+	defer s.c.Close()
+
+	addr := s.c.RemoteAddr().String()
 	log.Printf("[%v] connected\n", addr)
 
-	helloChan, visitChan := processIncoming(c)
+	go s.runParser()
 
-	sendError := func(err error) {
-		log.Println("sent error")
-		errorB := infra.Encode(types.Error{
-			Message: err.Error(),
-		})
-		c.Write(errorB)
-	}
+	s.runHandshake()
+	s.runVisit()
+}
 
-	select {
-	case helloReply := <-helloChan:
-		if helloReply.Protocol != "pestcontrol" || helloReply.Version != 1 {
-			sendError(pest.ErrInvalidHandshake)
-			return
-		}
-	case <-visitChan:
-		sendError(pest.ErrInvalidHandshake)
-		return
-	}
-
-	log.Printf("[%v] got hello\n", addr)
-
+func (s *Session) runHandshake() {
 	helloB := infra.Encode(types.Hello{
 		Protocol: "pestcontrol",
 		Version:  1,
 	})
-
-	_, err := c.Write(helloB)
+	_, err := s.c.Write(helloB)
 	if err != nil {
 		return
 	}
-	log.Printf("[%v] sent hello\n", addr)
 
-	go func() {
-		<-helloChan
-		c.Close()
-	}()
+	select {
+	case helloReply := <-s.helloChan:
+		if helloReply.Protocol != "pestcontrol" || helloReply.Version != 1 {
+			s.sendError(pest.ErrInvalidHandshake)
+			return
+		}
+	case <-s.visitChan:
+		s.sendError(pest.ErrInvalidHandshake)
+	}
+}
 
-	for v := range visitChan {
-		log.Printf("[%v] added visit: %v\n", addr, v)
-		err = pc.AddSiteVisit(v)
+func (s *Session) runVisit() {
+	for {
+		select {
+		case v := <-s.visitChan:
+			log.Printf("[%v] added visit: %v\n", s.c.RemoteAddr(), v)
+			err := s.pc.AddSiteVisit(v)
 
-		if err != nil {
-			log.Printf("%v got err %v", addr, err)
-
-			if errors.Is(err, pest.ErrInvalidSiteVisit) ||
-				errors.Is(err, pest.ErrInvalidHandshake) {
-				sendError(err)
+			if err != nil {
+				if errors.Is(err, pest.ErrInvalidSiteVisit) ||
+					errors.Is(err, pest.ErrInvalidHandshake) {
+					s.sendError(err)
+				}
+				return
 			}
-			break
+		case <-s.helloChan:
+			s.sendError(pest.ErrInvalidSiteVisit)
 		}
 	}
 }
 
-func processIncoming(c net.Conn) (helloChan chan types.Hello, visitChan chan types.SiteVisit) {
-	helloChan = make(chan types.Hello)
-	visitChan = make(chan types.SiteVisit)
+func (s *Session) runParser() {
+	var curr []byte
+	for {
+		b := make([]byte, 1024)
+		n, err := s.c.Read(b)
+		curr = append(curr, b[:n]...)
+		if err != nil {
+			break
+		}
 
-	go func() {
-		defer func() {
-			close(helloChan)
-			close(visitChan)
-		}()
-
-		var curr []byte
 		for {
-			b := make([]byte, 1024)
-			n, err := c.Read(b)
-			curr = append(curr, b[:n]...)
-			if err != nil {
+			res := infra.Parse(curr)
+			if !res.Ok {
 				break
 			}
 
-			for {
-				res := infra.Parse(curr)
-				if !res.Ok {
-					break
-				}
-
-				switch v := res.Value.(type) {
-				case types.Hello:
-					helloChan <- v
-				case types.SiteVisit:
-					visitChan <- v
-				default:
-					return
-				}
-
-				curr = res.Next
+			switch v := res.Value.(type) {
+			case types.Hello:
+				s.helloChan <- v
+			case types.SiteVisit:
+				s.visitChan <- v
+			default:
+				s.sendError(pest.ErrInvalidData)
+				return
 			}
-		}
-	}()
 
-	return helloChan, visitChan
+			curr = res.Next
+		}
+	}
+}
+
+func (s *Session) sendError(err error) {
+	log.Println("sent error")
+	errorB := infra.Encode(types.Error{
+		Message: err.Error(),
+	})
+	s.c.Write(errorB)
 }

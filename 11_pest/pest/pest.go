@@ -10,6 +10,7 @@ import (
 var (
 	ErrInvalidSiteVisit = fmt.Errorf("invalid site visit. found conflicting keys")
 	ErrInvalidHandshake = fmt.Errorf("invalid handshake")
+	ErrInvalidData      = fmt.Errorf("invalid data")
 )
 
 type Controller interface {
